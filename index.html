@@ -263,7 +263,8 @@ const firebaseConfig = {
   projectId: "powdex-control",
   storageBucket: "powdex-control.firebasestorage.app",
   messagingSenderId: "728647369167",
-  appId: "1:728647369167:web:3c433c2352d6fc4aef12ba"
+  appId: "1:728647369167:web:3c433c2352d6fc4aef12ba",
+  measurementId: "G-X5LDFNQBXS"
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -273,6 +274,7 @@ const cloudStateRef = ref(db, "powdex/state");
 let firebaseReady = false;
 let firebaseFirstLoad = true;
 let firebaseWriting = false;
+let firebaseWriteQueued = false;
 
 const KEY="powdex-control-v2";
 const DEFAULT={cab:"CAB-001",price:22,max:50,seq:1,running:false,managerLogged:false,currentShift:null,shiftHistory:[],drawers:[
@@ -282,21 +284,36 @@ const DEFAULT={cab:"CAB-001",price:22,max:50,seq:1,running:false,managerLogged:f
 let s=JSON.parse(localStorage.getItem(KEY)||"null")||structuredClone(DEFAULT);
 s.currentShift=s.currentShift||null;s.shiftHistory=s.shiftHistory||[];s.managerLogged=false;
 let timer=null;
+function getCloudData(){
+  return JSON.parse(JSON.stringify({
+    cab:s.cab,price:s.price,max:s.max,seq:s.seq,running:s.running,
+    currentShift:s.currentShift,shiftHistory:s.shiftHistory,
+    drawers:s.drawers,history:s.history
+  }));
+}
+
+function flushFirebaseSave(){
+  if(!firebaseReady || firebaseWriting || !firebaseWriteQueued)return;
+  firebaseWriteQueued=false;
+  firebaseWriting=true;
+  set(cloudStateRef,getCloudData())
+    .catch(err=>{
+      console.error("Firebase: erro ao salvar:",err);
+      toast("Erro ao sincronizar com o Firebase.");
+    })
+    .finally(()=>{
+      firebaseWriting=false;
+      // Se outra alteração aconteceu enquanto o envio estava em andamento,
+      // envia novamente o estado mais recente em vez de perder a alteração.
+      if(firebaseWriteQueued)flushFirebaseSave();
+    });
+}
+
 function save(){
   localStorage.setItem(KEY,JSON.stringify(s));
-  if(firebaseReady && !firebaseWriting){
-    const cloudData=JSON.parse(JSON.stringify({
-      cab:s.cab,price:s.price,max:s.max,seq:s.seq,running:s.running,
-      currentShift:s.currentShift,shiftHistory:s.shiftHistory,
-      drawers:s.drawers,history:s.history
-    }));
-    firebaseWriting=true;
-    set(cloudStateRef,cloudData)
-      .catch(err=>{
-        console.error("Firebase: erro ao salvar:",err);
-        toast("Erro ao sincronizar com o Firebase.");
-      })
-      .finally(()=>{firebaseWriting=false;});
+  if(firebaseReady){
+    firebaseWriteQueued=true;
+    flushFirebaseSave();
   }
 }
 function fmt(n){return Number(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}
@@ -492,8 +509,22 @@ function tick(){
  if(d.weight>=d.target || d.weight>=s.max)createLot(d);else{save();render()}
  document.getElementById("liveText").textContent=`Coleta automática ativa — Gaveta ${String(d.id).padStart(2,"0")} em ${fmt(d.weight)} kg; alvo do lote: ${fmt(d.target)} kg.`;
 }
-function start(){if(timer)return;s.running=true;save();render();timer=setInterval(tick,1200)}
-function stop(){clearInterval(timer);timer=null;s.running=false;save();render();document.getElementById("liveText").textContent="Simulação parada."}
+function start(){
+  if(timer)return;
+  s.running=true;
+  save();
+  render();
+  timer=setInterval(tick,1200);
+}
+
+function stop(options={saveState:true,renderState:true}){
+  clearInterval(timer);
+  timer=null;
+  s.running=false;
+  if(options.saveState)save();
+  if(options.renderState)render();
+  document.getElementById("liveText").textContent="Simulação parada.";
+}
 document.getElementById("runBtn").onclick=()=>timer?stop():start();
 document.getElementById("resetBtn").onclick=()=>{if(confirm("Zerar gavetas, lotes e relatório?")){s=structuredClone(DEFAULT);save();
 document.querySelectorAll("[data-send-drawer]").forEach(b=>b.onclick=()=>mobileSendDrawer(Number(b.dataset.sendDrawer)));
@@ -559,8 +590,16 @@ onValue(cloudStateRef, snapshot=>{
   managerRender();
   mobileRender();
 
-  if(s.running && !timer) start();
-  if(!s.running && timer) stop();
+  // O Firebase apenas informa o estado aqui. Não chamamos start()/stop(),
+  // porque essas funções salvam novamente e poderiam criar um ciclo de
+  // sobrescritas entre PC e celular.
+  if(s.running && !timer){
+    timer=setInterval(tick,1200);
+  }else if(!s.running && timer){
+    clearInterval(timer);
+    timer=null;
+    document.getElementById("liveText").textContent="Simulação parada.";
+  }
 }, err=>{
   console.error("Firebase: erro de leitura:",err);
   document.querySelector(".online").innerHTML='<span class="dot" style="background:var(--red)"></span>Firebase desconectado';
