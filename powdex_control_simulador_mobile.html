@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>POWDEX CONTROL</title>
+<style>
+:root{--navy:#10294b;--blue:#173b6b;--red:#d7192e;--green:#0b9d61;--yellow:#e5a719;--bg:#f3f6fa;--card:#fff;--text:#172235;--muted:#748096;--line:#dfe5ed}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}.app{min-height:100vh}
+.topbar{height:68px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:20}.brand{font-weight:900;font-size:21px;color:var(--navy);letter-spacing:-.8px}.brand span{color:var(--red)}.subtitle{font-size:10px;font-weight:500;color:#778397;letter-spacing:0;margin-top:-1px}.online{font-size:12px;color:#65738a;display:flex;gap:9px;align-items:center}.dot{width:9px;height:9px;background:var(--green);border-radius:50%;box-shadow:0 0 0 4px #e3f6ed}
+.layout{display:grid;grid-template-columns:245px 1fr;max-width:1500px;margin:auto}.sidebar{min-height:calc(100vh - 68px);background:#fff;border-right:1px solid var(--line);padding:18px 13px}.navbtn{display:block;width:100%;border:0;background:none;text-align:left;color:#66748a;padding:12px 14px;border-radius:9px;margin-bottom:5px;cursor:pointer}.navbtn:hover,.navbtn.active{background:#edf3fa;color:var(--navy);font-weight:800}.navicon{display:inline-block;width:22px}
+.main{padding:26px 30px 50px}.page{display:none}.page.active{display:block}.head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:22px}.head h1{margin:0;font-size:27px}.head p{margin:6px 0 0;color:var(--muted);font-size:13px}.actions{display:flex;gap:9px}.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:750;color:#344258}.btn.primary{background:var(--navy);border-color:var(--navy);color:#fff}.btn.red{background:var(--red);border-color:var(--red);color:#fff}.btn.green{background:var(--green);border-color:var(--green);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px;box-shadow:0 2px 8px #152b4b0a}.kpi .label{font-size:10px;text-transform:uppercase;letter-spacing:.55px;font-weight:850;color:var(--muted)}.kpi .value{font-size:25px;font-weight:900;margin-top:7px}.kpi .small{font-size:11px;color:var(--muted);margin-top:3px}
+.section{margin-top:18px}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;gap:10px}.section-title h2{margin:0;font-size:16px}.badge{font-size:10px;padding:4px 8px;border-radius:20px;font-weight:850;background:#e8f7f0;color:var(--green)}.badge.warn{background:#fff4d9;color:#9b6b00}.badge.red{background:#ffe7ea;color:var(--red)}
+.drawers{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.drawer .top{display:flex;justify-content:space-between;align-items:center}.drawer-id{font-weight:900;color:var(--navy);font-size:15px}.percent{font-weight:900;font-size:27px}.status{font-size:10px;font-weight:850;margin-top:3px}.normal{color:var(--green)}.attention{color:#ad7800}.full{color:var(--red)}.bar{height:10px;background:#e7ecf2;border-radius:99px;overflow:hidden;margin:12px 0}.fill{height:100%;border-radius:99px;transition:width 1.05s cubic-bezier(.22,1,.36,1);will-change:width;position:relative;overflow:hidden}.fill:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);transform:translateX(-100%);animation:shine 2.4s ease-in-out infinite}@keyframes shine{0%,45%{transform:translateX(-100%)}75%,100%{transform:translateX(100%)}}.fill.normal{background:var(--green)}.fill.attention{background:var(--yellow)}.fill.full{background:var(--red)}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line);padding-top:11px}.meta small{font-size:10px;color:var(--muted)}.meta b{display:block;font-size:13px;margin-top:3px}.lot{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--navy);font-size:11px}
+.table-card{padding:0;overflow:hidden}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap}th{background:#f7f9fc;color:#68758a;font-size:10px;text-transform:uppercase;letter-spacing:.45px}tr:last-child td{border-bottom:0}.empty{text-align:center;color:var(--muted);padding:28px}
+.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.field label{display:block;font-size:10px;text-transform:uppercase;font-weight:850;color:var(--muted)}.field input,.field select{width:100%;margin-top:6px;border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff;outline:none}.field input:focus{border-color:#9db2ce}.help{font-size:11px;color:var(--muted);line-height:1.5}
+.reportgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.report-big{font-size:32px;font-weight:900;color:var(--navy);margin:4px 0}.report-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px}.report-row:last-child{border-bottom:0}.report-row strong{font-size:13px}
+.live{margin-top:12px;display:flex;gap:9px;align-items:center;font-size:12px;color:#526077}.pulse{width:9px;height:9px;border-radius:50%;background:var(--green);animation:pulse 1.1s infinite}@keyframes pulse{50%{opacity:.3;transform:scale(.75)}}
+.note{font-size:11px;color:#8490a1;margin-top:14px;line-height:1.5}.cabinfo{font-size:12px;color:var(--muted)}.cabinfo b{font-size:18px;color:var(--navy)}
+.toast{position:fixed;right:20px;bottom:20px;background:#10294b;color:white;padding:12px 16px;border-radius:9px;font-size:12px;box-shadow:0 5px 20px #0002;display:none;z-index:50}.toast.show{display:block}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{min-height:auto;border-right:0;border-bottom:1px solid var(--line);display:flex;overflow:auto}.navbtn{min-width:150px}.grid{grid-template-columns:repeat(2,1fr)}.drawers,.reportgrid{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr}}
+@media(max-width:600px){.topbar{padding:0 15px}.online{display:none}.main{padding:18px 14px}.grid{grid-template-columns:1fr 1fr}.head{flex-direction:column;align-items:flex-start}.actions{width:100%}.actions .btn{flex:1}.sidebar{padding:9px}.navbtn{padding:9px 11px;min-width:135px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar"><div><div class="brand">POWDEX <span>CONTROL</span></div><div class="subtitle">Sistema de Recuperação de Pó</div></div><div class="online"><span class="dot"></span>Sistema conectado</div></header>
+<div class="layout">
+<aside class="sidebar">
+<button class="navbtn active" data-page="overview"><span class="navicon">▦</span>Visão geral</button>
+<button class="navbtn" data-page="drawers"><span class="navicon">▣</span>Gavetas</button>
+<button class="navbtn" data-page="history"><span class="navicon">◷</span>Histórico de lotes</button>
+<button class="navbtn" data-page="economy"><span class="navicon">◉</span>Economia / Relatório</button>
+<button class="navbtn" data-page="settings"><span class="navicon">⚙</span>Configurações</button>
+<button class="navbtn" data-page="management"><span class="navicon">⌨</span>Gerenciamento Geral</button>
+<button class="navbtn" data-page="mobile"><span class="navicon">📱</span>Simulador Mobile</button>
+</aside>
+<main class="main">
+
+<section id="overview" class="page active">
+<div class="head"><div><h1>Cabine <span id="cabineTitle">CAB-001</span></h1><p>Monitoramento automático da recuperação de tinta em pó.</p></div><div class="actions"><button class="btn" id="resetBtn">Zerar dados</button><button class="btn primary" id="runBtn">▶ Iniciar automático</button></div></div>
+<div class="grid">
+<div class="card kpi"><div class="label">Pó recuperado</div><div class="value" id="kTotal">0,0 kg</div><div class="small">acumulado</div></div>
+<div class="card kpi"><div class="label">Lotes registrados</div><div class="value" id="kLots">0</div><div class="small">lotes individuais</div></div>
+<div class="card kpi"><div class="label">Economia estimada</div><div class="value" id="kMoney">R$ 0,00</div><div class="small">peso × preço/kg</div></div>
+<div class="card kpi"><div class="label">Preço do pó</div><div class="value" id="kPrice">R$ 22,00/kg</div><div class="small">alterável em Configurações</div></div>
+</div>
+<div class="section"><div class="section-title"><h2>Nível das gavetas</h2><div class="cabinfo">Nº DA CABINE <b id="cabInfo">CAB-001</b></div></div><div id="overviewDrawers" class="drawers"></div></div>
+<div class="section"><div class="section-title"><h2>Últimos registros</h2><button class="btn" onclick="showPage('history')">Ver histórico completo</button></div><div class="card table-card"><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Lote</th><th>Gaveta</th><th>Peso do lote</th><th>Valor</th></tr></thead><tbody id="overviewHistory"></tbody></table></div></div></div>
+<div class="live"><span class="pulse"></span><span id="liveText">Simulação parada. Cada lote terá peso final aleatório entre 15 e 50 kg, respeitando o teto de 50 kg por gaveta.</span></div>
+</section>
+
+<section id="drawers" class="page">
+<div class="head"><div><h1>Gavetas</h1><p>Controle individual do peso, ocupação e último lote de cada gaveta.</p></div><button class="btn primary" id="manualBtn">+ Registrar lote manual</button></div>
+<div id="fullDrawers" class="drawers"></div>
+<div class="card section"><div class="section-title"><h2>Regra da simulação</h2><span class="badge">LIMITE 50 KG</span></div><p class="help">Quando o modo automático está ligado, cada gaveta recebe pequenas entradas de pó até atingir um peso final sorteado aleatoriamente entre <b>15 e 50 kg</b>. Ao atingir esse peso, o sistema fecha o lote, grava o peso real daquele lote, atribui um número único e reinicia a gaveta para uma nova coleta.</p></div>
+</section>
+
+<section id="history" class="page">
+<div class="head"><div><h1>Histórico de lotes</h1><p>Registro individual de tudo que foi coletado.</p></div><div class="actions"><button class="btn green" id="csvBtn">⇩ Exportar CSV</button><button class="btn" id="clearHistory">Limpar histórico</button></div></div>
+<div class="grid"><div class="card kpi"><div class="label">Peso total</div><div class="value" id="hKg">0 kg</div></div><div class="card kpi"><div class="label">Quantidade de lotes</div><div class="value" id="hLots">0</div></div><div class="card kpi"><div class="label">Peso médio/lote</div><div class="value" id="hAvg">0 kg</div></div><div class="card kpi"><div class="label">Valor recuperado</div><div class="value" id="hValue">R$ 0</div></div></div>
+<div class="card table-card section"><div class="table-wrap"><table><thead><tr><th>Data/hora</th><th>Lote individual</th><th>Cabine</th><th>Gaveta</th><th>Peso</th><th>Preço/kg</th><th>Economia</th></tr></thead><tbody id="historyTable"></tbody></table></div></div>
+</section>
+
+<section id="economy" class="page">
+<div class="head"><div><h1>Economia e relatório</h1><p>O sistema calcula automaticamente o valor do pó recuperado.</p></div><button class="btn green" id="reportCsv">⇩ Exportar relatório</button></div>
+<div class="reportgrid">
+<div class="card"><div class="label" style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:850">Economia total estimada</div><div class="report-big" id="rMoney">R$ 0,00</div><div class="help">Cálculo: <b>kg recuperados × preço por kg</b>.</div></div>
+<div class="card"><div class="label" style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:850">Pó recuperado</div><div class="report-big" id="rKg">0,0 kg</div><div class="help">Preço utilizado: <b id="rPrice">R$ 22,00/kg</b></div></div>
+</div>
+<div class="card section"><div class="section-title"><h2>Resumo por gaveta</h2></div><div id="drawerReport"></div></div>
+<div class="card section"><div class="section-title"><h2>Resumo geral</h2></div><div id="generalReport"></div></div>
+</section>
+
+
+<section id="management" class="page">
+<div class="head">
+  <div><h1>Gerenciamento Geral</h1><p>Acesso restrito à gerência — rastreabilidade de operadores, turnos, cabines e gavetas.</p></div>
+  <div class="actions"><button class="btn" id="logoutManager">Sair do gerenciamento</button></div>
+</div>
+
+<div id="managerLogin" class="card" style="max-width:520px;margin:30px auto">
+  <div class="section-title"><h2> Acesso da Gerência</h2><span class="badge">RESTRITO</span></div>
+  <p class="help">Entre com as credenciais predefinidas para visualizar os dados gerenciais.</p>
+  <div class="formgrid" style="margin-top:14px">
+    <div class="field"><label>Usuário</label><input id="managerUser" value="GERENCIA"></div>
+    <div class="field"><label>Senha</label><input id="managerPass" type="password" placeholder="Digite a senha"></div>
+  </div>
+  <button class="btn primary" id="managerLoginBtn" style="margin-top:14px;width:100%">Entrar</button>
+  <div id="loginError" class="help" style="color:var(--red);margin-top:10px;display:none">Usuário ou senha incorretos.</div>
+  <p class="note">Demonstração: usuário <b>GERENCIA</b> e senha <b>POWDEX2026</b>. Em uma implantação real, o login deverá ser validado por servidor.</p>
+</div>
+
+<div id="managerPanel" style="display:none">
+  <div class="grid">
+    <div class="card kpi"><div class="label">Cabines</div><div class="value" id="mCabines">1</div><div class="small">cadastrada(s)</div></div>
+    <div class="card kpi"><div class="label">Gavetas monitoradas</div><div class="value">3</div><div class="small">CAB-001</div></div>
+    <div class="card kpi"><div class="label">Operadores</div><div class="value" id="mOperators">0</div><div class="small">com registros</div></div>
+    <div class="card kpi"><div class="label">Economia acumulada</div><div class="value" id="mEconomy">R$ 0,00</div><div class="small">histórico completo</div></div>
+  </div>
+
+  <div class="section reportgrid">
+    <div class="card">
+      <div class="section-title"><h2>Turno atual</h2><span class="badge" id="currentShiftBadge">—</span></div>
+      <div class="report-row"><span>Operador responsável</span><strong id="currentOperator">Não informado</strong></div>
+      <div class="report-row"><span>Horário do turno</span><strong id="currentShiftTime">—</strong></div>
+      <div class="report-row"><span>Cabine</span><strong id="currentCabin">CAB-001</strong></div>
+      <div class="report-row"><span>Gavetas</span><strong>01 / 02 / 03</strong></div>
+      <div style="margin-top:12px" class="formgrid">
+        <div class="field"><label>Operador do turno</label><input id="operatorInput" placeholder="Ex.: João"></div>
+        <div class="field"><label>Turno</label><select id="shiftInput"><option value="1º Turno">1º Turno — 06:00–14:00</option><option value="2º Turno">2º Turno — 14:00–22:00</option><option value="3º Turno">3º Turno — 22:00–06:00</option></select></div>
+      </div>
+      <button class="btn primary" id="startShift" style="margin-top:12px">Abrir / atualizar turno</button>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><h2>Resumo por cabine</h2><span class="badge">TEMPO REAL</span></div>
+      <div class="report-row"><span>CAB-001</span><strong id="cabWeight">0,0 kg</strong></div>
+      <div class="report-row"><span>Lotes registrados</span><strong id="cabLots">0</strong></div>
+      <div class="report-row"><span>Economia estimada</span><strong id="cabMoney">R$ 0,00</strong></div>
+      <div class="report-row"><span>Último lote</span><strong class="lot" id="cabLastLot">—</strong></div>
+    </div>
+  </div>
+
+  <div class="card section">
+    <div class="section-title"><h2>Controle de turnos e rastreabilidade</h2><span class="badge">AUDITORIA</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Data</th><th>Turno</th><th>Operador</th><th>Cabine</th><th>Início</th><th>Fim</th><th>Kg no turno</th></tr></thead>
+    <tbody id="shiftTable"></tbody></table></div>
+  </div>
+
+  <div class="card section">
+    <div class="section-title"><h2>Rastreabilidade por lote</h2><span class="badge">LOTE → OPERADOR</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Data/hora</th><th>Cabine</th><th>Gaveta</th><th>Operador</th><th>Turno</th><th>Peso</th><th>Valor</th></tr></thead>
+    <tbody id="traceTable"></tbody></table></div>
+  </div>
+
+  <div class="card section">
+    <div class="section-title"><h2>Relatório de produtividade por operador</h2><button class="btn green" id="managerCsv">⇩ Exportar relatório</button></div>
+    <div class="table-wrap"><table><thead><tr><th>Operador</th><th>Lotes</th><th>Kg recuperados</th><th>Economia</th></tr></thead>
+    <tbody id="operatorTable"></tbody></table></div>
+  </div>
+
+  <div class="card section">
+    <div class="section-title"><h2>Linha do tempo da operação</h2></div>
+    <div id="timeline" class="help"></div>
+  </div>
+</div>
+</section>
+
+
+<section id="mobile" class="page">
+  <div class="head">
+    <div>
+      <h1>Simulador Mobile</h1>
+      <p>Use o celular como controlador de teste para enviar informações manualmente ao POWDEX CONTROL.</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="mobileClear">Limpar campos</button>
+      <button class="btn primary" id="mobileSendAll">Enviar todas</button>
+    </div>
+  </div>
+
+  <div class="card section">
+    <div class="section-title">
+      <h2>Conexão com o computador</h2>
+      <span class="badge warn" id="mobileConnBadge">SIMULAÇÃO</span>
+    </div>
+    <div class="reportgrid">
+      <div>
+        <div class="report-row"><span>Modo</span><strong>Celular como controlador</strong></div>
+        <div class="report-row"><span>Computador</span><strong id="mobilePcStatus">Aguardando conexão</strong></div>
+        <div class="report-row"><span>Cabine</span><strong id="mobileCabin">CAB-001</strong></div>
+      </div>
+      <div>
+        <p class="help">
+          Esta página permite testar manualmente os dados que futuramente poderão vir de um ESP32.
+          Nesta primeira versão, os dados são enviados para o POWDEX CONTROL pelo armazenamento local
+          do navegador quando celular e computador estiverem usando a mesma origem/sincronização.
+        </p>
+        <div class="report-row"><span>Último envio</span><strong id="mobileLastSend">—</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid section">
+    <div class="card">
+      <div class="section-title"><h2>Gaveta 01</h2><span class="badge" id="mobileSt1">NORMAL</span></div>
+      <div class="field"><label>Peso atual (kg)</label><input id="mobileW1" type="number" min="0" max="50" step="0.1" placeholder="Ex.: 37,5"></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" data-send-drawer="1">Enviar peso</button>
+        <button class="btn" data-zero-drawer="1">Zerar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><h2>Gaveta 02</h2><span class="badge" id="mobileSt2">NORMAL</span></div>
+      <div class="field"><label>Peso atual (kg)</label><input id="mobileW2" type="number" min="0" max="50" step="0.1" placeholder="Ex.: 21,8"></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" data-send-drawer="2">Enviar peso</button>
+        <button class="btn" data-zero-drawer="2">Zerar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><h2>Gaveta 03</h2><span class="badge" id="mobileSt3">NORMAL</span></div>
+      <div class="field"><label>Peso atual (kg)</label><input id="mobileW3" type="number" min="0" max="50" step="0.1" placeholder="Ex.: 44,2"></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" data-send-drawer="3">Enviar peso</button>
+        <button class="btn" data-zero-drawer="3">Zerar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card section">
+    <div class="section-title"><h2>Comandos de teste</h2><span class="badge">SIMULADOR</span></div>
+    <div class="actions">
+      <button class="btn green" id="mobileCloseLot">Fechar lote da gaveta selecionada</button>
+      <button class="btn" id="mobileFull">Simular gaveta cheia</button>
+    </div>
+    <p class="note">Os comandos acima são apenas para testar o comportamento do sistema. A integração física com sensores/ESP32 será feita posteriormente.</p>
+  </div>
+
+  <div class="card section">
+    <div class="section-title"><h2>Registro de comunicação</h2></div>
+    <div id="mobileLog" class="help">Nenhum dado enviado ainda.</div>
+  </div>
+</section>
+
+<section id="settings" class="page">
+<div class="head"><div><h1>Configurações</h1><p>Parâmetros usados nos registros e nos cálculos.</p></div><button class="btn primary" id="saveSettings">Salvar configurações</button></div>
+<div class="card"><div class="formgrid">
+<div class="field"><label>Número da cabine</label><input id="setCab" value="CAB-001"></div>
+<div class="field"><label>Preço do pó por kg (R$)</label><input id="setPrice" type="number" min="0" step=".01" value="22"></div>
+<div class="field"><label>Teto máximo da gaveta (kg)</label><input value="50" disabled></div>
+<div class="field"><label>Faixa aleatória dos lotes</label><input value="15 a 50 kg" disabled></div>
+</div><p class="help" style="margin-top:15px">O teto de <b>50 kg</b> é fixo. A cada lote concluído, o peso final é sorteado entre <b>15 e 50 kg</b>. O preço/kg pode ser alterado a qualquer momento e o relatório passa a usar o novo valor.</p></div>
+<div class="card section"><div class="section-title"><h2>Exemplo de cálculo</h2></div><div class="report-row"><span>Se uma gaveta tiver 37,5 kg</span><strong id="example">37,5 × R$ 22,00 = R$ 825,00</strong></div></div>
+</section>
+</main>
+</div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+const KEY="powdex-control-v2";
+const DEFAULT={cab:"CAB-001",price:22,max:50,seq:1,running:false,managerLogged:false,currentShift:null,shiftHistory:[],drawers:[
+{id:1,weight:0,target:null,lots:0,total:0,lastLot:"—"},
+{id:2,weight:0,target:null,lots:0,total:0,lastLot:"—"},
+{id:3,weight:0,target:null,lots:0,total:0,lastLot:"—"}],history:[]};
+let s=JSON.parse(localStorage.getItem(KEY)||"null")||structuredClone(DEFAULT);
+s.currentShift=s.currentShift||null;s.shiftHistory=s.shiftHistory||[];s.managerLogged=false;
+let timer=null;
+function save(){localStorage.setItem(KEY,JSON.stringify(s))}
+function fmt(n){return Number(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}
+function money(n){return Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+function pad(n){return String(n).padStart(4,"0")}
+function status(w){return w>=49.9?"CHEIA":w>=30?"ATENÇÃO":"NORMAL"}
+function cls(st){return st==="NORMAL"?"normal":st==="ATENÇÃO"?"attention":"full"}
+function card(d){
+ const st=status(d.weight), c=cls(st), pct=Math.min(100,d.weight/s.max*100);
+ return `<div class="card drawer"><div class="top"><div><div class="drawer-id">GAVETA ${String(d.id).padStart(2,"0")}</div><div class="status ${c}">● ${st}</div></div><div class="percent">${Math.round(pct)}%</div></div><div class="bar"><div class="fill ${c}" style="width:${pct}%"></div></div><div class="meta"><div><small>PESO ATUAL</small><b>${fmt(d.weight)} kg / 50 kg</b></div><div><small>ÚLTIMO LOTE</small><b class="lot">${d.lastLot}</b></div><div><small>LOTES DA GAVETA</small><b>${d.lots}</b></div><div><small>TOTAL HISTÓRICO</small><b>${fmt(d.total)} kg</b></div></div></div>`
+}
+
+const MOBILE_KEY="powdex-mobile-simulator-v1";
+let mobileLog=JSON.parse(localStorage.getItem(MOBILE_KEY)||"[]");
+
+function mobileSave(){
+  localStorage.setItem(MOBILE_KEY,JSON.stringify(mobileLog.slice(0,30)));
+}
+
+function mobileTime(){
+  return new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+}
+
+function mobileStatus(w){
+  if(w>=49.9)return ["CHEIA","badge red"];
+  if(w>=30)return ["ATENÇÃO","badge warn"];
+  return ["NORMAL","badge"];
+}
+
+function mobileAddLog(text){
+  mobileLog.unshift(mobileTime()+" — "+text);
+  mobileLog=mobileLog.slice(0,30);
+  mobileSave();
+  mobileRender();
+}
+
+function mobileSendDrawer(id){
+  const input=document.getElementById("mobileW"+id);
+  let kg=Number(String(input.value).replace(",","."));
+  if(!Number.isFinite(kg)||kg<0||kg>50){
+    toast("Informe um peso entre 0 e 50 kg.");
+    return;
+  }
+  s.drawers[id-1].weight=+kg.toFixed(1);
+  save(); render();
+  mobileAddLog(`Gaveta ${String(id).padStart(2,"0")} → ${fmt(kg)} kg enviado ao POWDEX CONTROL.`);
+  document.getElementById("mobilePcStatus").textContent="Dado recebido pelo sistema";
+  document.getElementById("mobileLastSend").textContent=mobileTime();
+  toast(`Gaveta ${String(id).padStart(2,"0")} atualizada — ${fmt(kg)} kg`);
+}
+
+function mobileZeroDrawer(id){
+  document.getElementById("mobileW"+id).value="";
+  s.drawers[id-1].weight=0;
+  s.drawers[id-1].target=null;
+  save(); render();
+  mobileAddLog(`Gaveta ${String(id).padStart(2,"0")} → zerada.`);
+  toast(`Gaveta ${String(id).padStart(2,"0")} zerada.`);
+}
+
+function mobileRender(){
+  const cab=document.getElementById("mobileCabin");
+  if(!cab)return;
+  cab.textContent=s.cab;
+  [1,2,3].forEach(id=>{
+    const d=s.drawers[id-1], [label,klass]=mobileStatus(d.weight);
+    const b=document.getElementById("mobileSt"+id);
+    b.textContent=label;b.className=klass;
+    document.getElementById("mobileW"+id).value=d.weight||"";
+  });
+  document.getElementById("mobileLog").innerHTML=mobileLog.map(x=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)">${x}</div>`).join("")||"Nenhum dado enviado ainda.";
+}
+
+function mobileSendAll(){
+  [1,2,3].forEach(id=>{
+    const v=document.getElementById("mobileW"+id).value;
+    if(v!=="")mobileSendDrawer(id);
+  });
+  toast("Dados das gavetas enviados.");
+}
+
+function mobileClear(){
+  [1,2,3].forEach(id=>document.getElementById("mobileW"+id).value="");
+  mobileRender();
+}
+
+function mobileFull(){
+  const id=prompt("Qual gaveta deseja deixar cheia? (1, 2 ou 3)");
+  if(!["1","2","3"].includes(id))return;
+  document.getElementById("mobileW"+id).value="50";
+  mobileSendDrawer(Number(id));
+}
+
+function mobileCloseLot(){
+  const id=prompt("Qual gaveta deseja fechar? (1, 2 ou 3)");
+  if(!["1","2","3"].includes(id))return;
+  const d=s.drawers[Number(id)-1];
+  if(d.weight<=0){toast("Essa gaveta está vazia.");return;}
+  createLot(d);
+  document.getElementById("mobileW"+id).value="";
+  mobileAddLog(`Gaveta ${String(id).padStart(2,"0")} → lote fechado manualmente.`);
+}
+
+function render(){
+ document.getElementById("cabineTitle").textContent=s.cab;document.getElementById("cabInfo").textContent=s.cab;
+ const total=s.history.reduce((a,x)=>a+x.kg,0), lots=s.history.length, value=total*s.price;
+ document.getElementById("kTotal").textContent=fmt(total)+" kg";document.getElementById("kLots").textContent=lots;
+ document.getElementById("kMoney").textContent=money(value);document.getElementById("kPrice").textContent=money(s.price)+"/kg";
+ document.getElementById("overviewDrawers").innerHTML=s.drawers.map(card).join("");document.getElementById("fullDrawers").innerHTML=s.drawers.map(card).join("");
+ document.getElementById("setCab").value=s.cab;document.getElementById("setPrice").value=s.price;
+ document.getElementById("overviewHistory").innerHTML=s.history.slice(0,8).map(x=>`<tr><td>${x.time}</td><td class="lot">${x.lot}</td><td>Gaveta ${String(x.drawer).padStart(2,"0")}</td><td><b>${fmt(x.kg)} kg</b></td><td>${money(x.kg*s.price)}</td></tr>`).join("")||`<tr><td colspan="5" class="empty">Nenhum lote registrado.</td></tr>`;
+ document.getElementById("historyTable").innerHTML=s.history.map(x=>`<tr><td>${x.time}</td><td class="lot">${x.lot}</td><td>${x.cab}</td><td>Gaveta ${String(x.drawer).padStart(2,"0")}</td><td><b>${fmt(x.kg)} kg</b></td><td>${money(s.price)}</td><td><b>${money(x.kg*s.price)}</b></td></tr>`).join("")||`<tr><td colspan="7" class="empty">Nenhum lote registrado.</td></tr>`;
+ document.getElementById("hKg").textContent=fmt(total)+" kg";document.getElementById("hLots").textContent=lots;
+ document.getElementById("hAvg").textContent=fmt(lots?total/lots:0)+" kg";document.getElementById("hValue").textContent=money(value);
+ document.getElementById("rMoney").textContent=money(value);document.getElementById("rKg").textContent=fmt(total)+" kg";document.getElementById("rPrice").textContent=money(s.price)+"/kg";
+ document.getElementById("drawerReport").innerHTML=s.drawers.map(d=>`<div class="report-row"><span>Gaveta ${String(d.id).padStart(2,"0")} — ${d.lots} lote(s), ${fmt(d.total)} kg</span><strong>${money(d.total*s.price)}</strong></div>`).join("");
+ document.getElementById("generalReport").innerHTML=`<div class="report-row"><span>Total de lotes registrados</span><strong>${lots}</strong></div><div class="report-row"><span>Peso total recuperado</span><strong>${fmt(total)} kg</strong></div><div class="report-row"><span>Preço atual por kg</span><strong>${money(s.price)}</strong></div><div class="report-row"><span><b>Economia total estimada</b></span><strong>${money(value)}</strong></div>`;
+ document.getElementById("example").textContent=`37,5 × ${money(s.price)} = ${money(37.5*s.price)}`;
+ document.getElementById("runBtn").textContent=s.running?"■ Parar automático":"▶ Iniciar automático";document.getElementById("runBtn").className=s.running?"btn red":"btn primary";
+}
+
+function managerRender(){
+ const total=s.history.reduce((a,x)=>a+x.kg,0), value=total*s.price;
+ const logged=!!s.managerLogged;
+ document.getElementById("managerLogin").style.display=logged?"none":"block";
+ document.getElementById("managerPanel").style.display=logged?"block":"none";
+ if(!logged)return;
+ const ops=[...new Set(s.history.map(x=>x.operator).filter(Boolean))];
+ document.getElementById("mCabines").textContent=1;
+ document.getElementById("mOperators").textContent=ops.length;
+ document.getElementById("mEconomy").textContent=money(value);
+ const sh=s.currentShift;
+ document.getElementById("currentOperator").textContent=sh?.operator||"Não informado";
+ document.getElementById("currentShiftBadge").textContent=sh?.shift||"SEM TURNO";
+ document.getElementById("currentShiftTime").textContent=sh?.timeRange||"—";
+ document.getElementById("currentCabin").textContent=s.cab;
+ document.getElementById("operatorInput").value=sh?.operator||"";
+ document.getElementById("shiftInput").value=sh?.shift||"1º Turno";
+ document.getElementById("cabWeight").textContent=fmt(total)+" kg";
+ document.getElementById("cabLots").textContent=s.history.length;
+ document.getElementById("cabMoney").textContent=money(value);
+ document.getElementById("cabLastLot").textContent=s.history[0]?.lot||"—";
+
+ document.getElementById("shiftTable").innerHTML=s.shiftHistory.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.shift}</td><td><b>${x.operator}</b></td><td>${x.cab}</td><td>${x.start}</td><td>${x.end||"Em andamento"}</td><td>${fmt(x.kg)} kg</td></tr>`).join("")||`<tr><td colspan="7" class="empty">Nenhum turno registrado.</td></tr>`;
+
+ document.getElementById("traceTable").innerHTML=s.history.map(x=>`<tr><td class="lot">${x.lot}</td><td>${x.time}</td><td>${x.cab}</td><td>Gaveta ${String(x.drawer).padStart(2,"0")}</td><td>${x.operator||"Não informado"}</td><td>${x.shift||"—"}</td><td>${fmt(x.kg)} kg</td><td>${money(x.kg*s.price)}</td></tr>`).join("")||`<tr><td colspan="8" class="empty">Nenhum lote registrado.</td></tr>`;
+
+ const map={};s.history.forEach(x=>{const op=x.operator||"Não informado";if(!map[op])map[op]={lots:0,kg:0};map[op].lots++;map[op].kg+=x.kg});
+ document.getElementById("operatorTable").innerHTML=Object.entries(map).sort((a,b)=>b[1].kg-a[1].kg).map(([op,v])=>`<tr><td><b>${op}</b></td><td>${v.lots}</td><td>${fmt(v.kg)} kg</td><td><b>${money(v.kg*s.price)}</b></td></tr>`).join("")||`<tr><td colspan="4" class="empty">Ainda não há produtividade registrada.</td></tr>`;
+
+ const events=s.history.slice(0,20).map(x=>`<div style="padding:9px 0;border-bottom:1px solid var(--line)"><b>${x.time}</b> — Lote <span class="lot">${x.lot}</span> fechado na Gaveta ${String(x.drawer).padStart(2,"0")}, ${fmt(x.kg)} kg, operador: <b>${x.operator||"Não informado"}</b>, ${x.shift||"sem turno"}.</div>`).join("");
+ document.getElementById("timeline").innerHTML=events||"Nenhum evento registrado.";
+}
+function loginManager(){
+ const u=document.getElementById("managerUser").value.trim().toUpperCase(),p=document.getElementById("managerPass").value;
+ if(u==="GERENCIA"&&p==="POWDEX2026"){s.managerLogged=true;save();managerRender();toast("Acesso da gerência liberado.");}
+ else document.getElementById("loginError").style.display="block";
+}
+function logoutManager(){s.managerLogged=false;save();managerRender();toast("Sessão da gerência encerrada.")}
+function openShift(){
+ const op=document.getElementById("operatorInput").value.trim()||"Operador não informado", sh=document.getElementById("shiftInput").value;
+ const ranges={"1º Turno":"06:00–14:00","2º Turno":"14:00–22:00","3º Turno":"22:00–06:00"};
+ const now=new Date(), date=now.toLocaleDateString("pt-BR"), start=now.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+ if(s.currentShift){
+   const old=s.currentShift;old.end=start;
+   old.kg=s.history.filter(x=>x.operator===old.operator&&x.shift===old.shift&&x.time.startsWith(old.date)).reduce((a,x)=>a+x.kg,0);
+   s.shiftHistory.push(old);
+ }
+ s.currentShift={date,shift:sh,operator:op,cab:s.cab,start,timeRange:ranges[sh]};
+ save();managerRender();toast(`${sh} aberto para ${op}.`);
+}
+
+function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.page===id));render();if(id==="management")managerRender();if(id==="mobile")mobileRender()}
+window.showPage=showPage;document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+function toast(t){const x=document.getElementById("toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),2500)}
+function randomTarget(){return Math.floor(Math.random()*36)+15}
+function createLot(d){
+ const kg=Number(d.weight.toFixed(1)); if(kg<15)return;
+ const now=new Date(), date=now.toLocaleDateString("pt-BR"), time=now.toLocaleTimeString("pt-BR");
+ const lot="L"+now.toISOString().slice(0,10).replaceAll("-","")+"-"+pad(s.seq++);
+ d.lastLot=lot;d.lots++;d.total+=kg;
+ s.history.unshift({time:date+" "+time,lot,cab:s.cab,drawer:d.id,kg,operator:s.currentShift?.operator||"Não informado",shift:s.currentShift?.shift||"—"});
+ d.weight=0;d.target=null;save();render();toast(`Lote ${lot} registrado — ${fmt(kg)} kg`);
+}
+function tick(){
+ let candidates=s.drawers.filter(d=>d.weight<s.max);
+ if(!candidates.length){stop();toast("Todas as gavetas chegaram ao limite de 50 kg.");return}
+ const d=candidates[Math.floor(Math.random()*candidates.length)];
+ if(!d.target)d.target=randomTarget();
+ const remaining=d.target-d.weight;
+ const inc=Math.min(remaining,+(Math.random()*2.8+.7).toFixed(1));
+ d.weight=+(d.weight+inc).toFixed(1);
+ if(d.weight>=d.target || d.weight>=s.max)createLot(d);else{save();render()}
+ document.getElementById("liveText").textContent=`Coleta automática ativa — Gaveta ${String(d.id).padStart(2,"0")} em ${fmt(d.weight)} kg; alvo do lote: ${fmt(d.target)} kg.`;
+}
+function start(){if(timer)return;s.running=true;save();render();timer=setInterval(tick,1200)}
+function stop(){clearInterval(timer);timer=null;s.running=false;save();render();document.getElementById("liveText").textContent="Simulação parada."}
+document.getElementById("runBtn").onclick=()=>timer?stop():start();
+document.getElementById("resetBtn").onclick=()=>{if(confirm("Zerar gavetas, lotes e relatório?")){s=structuredClone(DEFAULT);save();
+document.querySelectorAll("[data-send-drawer]").forEach(b=>b.onclick=()=>mobileSendDrawer(Number(b.dataset.sendDrawer)));
+document.querySelectorAll("[data-zero-drawer]").forEach(b=>b.onclick=()=>mobileZeroDrawer(Number(b.dataset.zeroDrawer)));
+document.getElementById("mobileSendAll").onclick=mobileSendAll;
+document.getElementById("mobileClear").onclick=mobileClear;
+document.getElementById("mobileFull").onclick=mobileFull;
+document.getElementById("mobileCloseLot").onclick=mobileCloseLot;
+
+render();managerRender();toast("Dados zerados.")}};
+document.getElementById("saveSettings").onclick=()=>{s.cab=document.getElementById("setCab").value.trim()||"CAB-001";s.price=Math.max(0,Number(document.getElementById("setPrice").value)||0);save();render();toast("Configurações salvas.")};
+document.getElementById("setPrice").oninput=()=>{let p=Math.max(0,Number(document.getElementById("setPrice").value)||0);document.getElementById("example").textContent=`37,5 × ${money(p)} = ${money(37.5*p)}`};
+document.getElementById("manualBtn").onclick=()=>{const d=s.drawers[Math.floor(Math.random()*s.drawers.length)];d.weight=randomTarget();createLot(d)};
+document.getElementById("clearHistory").onclick=()=>{if(confirm("Apagar todo o histórico?")){s.history=[];s.drawers.forEach(d=>{d.lots=0;d.total=0;d.lastLot="—"});save();render();toast("Histórico apagado.")}};
+function csv(){let rows=[["Data/hora","Lote","Cabine","Gaveta","Peso (kg)","Preço/kg (R$)","Economia (R$)"],...s.history.map(x=>[x.time,x.lot,x.cab,x.drawer,x.kg,s.price,(x.kg*s.price).toFixed(2)])];let txt="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(";")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"text/csv;charset=utf-8"}));a.download="powdex_relatorio_lotes.csv";a.click();URL.revokeObjectURL(a.href)}
+document.getElementById("csvBtn").onclick=csv;document.getElementById("reportCsv").onclick=csv;
+document.getElementById("managerLoginBtn").onclick=loginManager;
+document.getElementById("managerPass").onkeydown=e=>{if(e.key==="Enter")loginManager()};
+document.getElementById("logoutManager").onclick=logoutManager;
+document.getElementById("startShift").onclick=openShift;
+document.getElementById("managerCsv").onclick=()=>{csv();toast("Relatório de lotes exportado.")};
+
+document.querySelectorAll("[data-send-drawer]").forEach(b=>b.onclick=()=>mobileSendDrawer(Number(b.dataset.sendDrawer)));
+document.querySelectorAll("[data-zero-drawer]").forEach(b=>b.onclick=()=>mobileZeroDrawer(Number(b.dataset.zeroDrawer)));
+document.getElementById("mobileSendAll").onclick=mobileSendAll;
+document.getElementById("mobileClear").onclick=mobileClear;
+document.getElementById("mobileFull").onclick=mobileFull;
+document.getElementById("mobileCloseLot").onclick=mobileCloseLot;
+
+render();managerRender();if(s.running)start();
+</script>
+</body>
+</html>
