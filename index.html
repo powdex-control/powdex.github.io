@@ -508,6 +508,12 @@ function createLot(d){
  d.weight=0;d.target=null;save();render();toast(`Lote ${lot} registrado — ${fmt(kg)} kg`);
 }
 function tick(){
+ if(!s.running){
+  clearInterval(timer);
+  timer=null;
+  document.getElementById("liveText").textContent="Simulação parada.";
+  return;
+ }
  let candidates=s.drawers.filter(d=>d.weight<s.max);
  if(!candidates.length){stop();toast("Todas as gavetas chegaram ao limite de 50 kg.");return}
  const d=candidates[Math.floor(Math.random()*candidates.length)];
@@ -542,7 +548,7 @@ function stop(options={saveState:true,renderState:true}){
   if(options.renderState)render();
   document.getElementById("liveText").textContent="Simulação parada.";
 }
-document.getElementById("runBtn").onclick=()=>timer?stop():start();
+document.getElementById("runBtn").onclick=()=>s.running?stop():start();
 document.getElementById("resetBtn").onclick=()=>{if(confirm("Zerar gavetas, lotes e relatório?")){s=structuredClone(DEFAULT);save();
 document.querySelectorAll("[data-send-drawer]").forEach(b=>b.onclick=()=>mobileSendDrawer(Number(b.dataset.sendDrawer)));
 document.querySelectorAll("[data-zero-drawer]").forEach(b=>b.onclick=()=>mobileZeroDrawer(Number(b.dataset.zeroDrawer)));
