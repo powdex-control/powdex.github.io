@@ -274,7 +274,7 @@ const cloudStateRef = ref(db, "powdex/state");
 let firebaseReady = false;
 let firebaseFirstLoad = true;
 let firebaseWriting = false;
-let firebaseWriteQueued = false;
+let firebaseWriteQueued = null;
 
 const KEY="powdex-control-v2";
 const DEFAULT={cab:"CAB-001",price:22,max:50,seq:1,running:false,managerLogged:false,currentShift:null,shiftHistory:[],drawers:[
@@ -294,17 +294,23 @@ function getCloudData(){
 
 function flushFirebaseSave(){
   if(!firebaseReady || firebaseWriting || !firebaseWriteQueued)return;
-  firebaseWriteQueued=false;
+
+  // Captura o estado exato que foi solicitado para gravação.
+  // Não podemos buscar s novamente depois, porque o onValue() pode receber
+  // um estado antigo do Firebase nesse intervalo e sobrescrever a alteração.
+  const payload=firebaseWriteQueued;
+  firebaseWriteQueued=null;
   firebaseWriting=true;
-  set(cloudStateRef,getCloudData())
+
+  set(cloudStateRef,payload)
     .catch(err=>{
       console.error("Firebase: erro ao salvar:",err);
       toast("Erro ao sincronizar com o Firebase.");
     })
     .finally(()=>{
       firebaseWriting=false;
-      // Se outra alteração aconteceu enquanto o envio estava em andamento,
-      // envia novamente o estado mais recente em vez de perder a alteração.
+      // Se outra alteração aconteceu durante o envio, ela já está na fila
+      // como um snapshot próprio e será enviada em seguida.
       if(firebaseWriteQueued)flushFirebaseSave();
     });
 }
@@ -312,7 +318,9 @@ function flushFirebaseSave(){
 function save(){
   localStorage.setItem(KEY,JSON.stringify(s));
   if(firebaseReady){
-    firebaseWriteQueued=true;
+    // Guarda uma cópia do estado AGORA. Isso evita perder, por exemplo,
+    // running=false ao clicar em PARAR enquanto ainda há uma gravação anterior.
+    firebaseWriteQueued=getCloudData();
     flushFirebaseSave();
   }
 }
