@@ -270,6 +270,7 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 const cloudStateRef = ref(db, "powdex/state");
+const cloudRunningRef = ref(db, "powdex/control/running");
 
 let firebaseReady = false;
 let firebaseFirstLoad = true;
@@ -286,7 +287,7 @@ s.currentShift=s.currentShift||null;s.shiftHistory=s.shiftHistory||[];s.managerL
 let timer=null;
 function getCloudData(){
   return JSON.parse(JSON.stringify({
-    cab:s.cab,price:s.price,max:s.max,seq:s.seq,running:s.running,
+    cab:s.cab,price:s.price,max:s.max,seq:s.seq,
     currentShift:s.currentShift,shiftHistory:s.shiftHistory,
     drawers:s.drawers,history:s.history
   }));
@@ -521,6 +522,10 @@ function start(){
   if(timer)return;
   s.running=true;
   save();
+  set(cloudRunningRef,true).catch(err=>{
+    console.error("Firebase: erro ao iniciar:",err);
+    toast("Não foi possível iniciar a simulação no Firebase.");
+  });
   render();
   timer=setInterval(tick,1200);
 }
@@ -530,6 +535,10 @@ function stop(options={saveState:true,renderState:true}){
   timer=null;
   s.running=false;
   if(options.saveState)save();
+  set(cloudRunningRef,false).catch(err=>{
+    console.error("Firebase: erro ao parar:",err);
+    toast("Não foi possível parar a simulação no Firebase.");
+  });
   if(options.renderState)render();
   document.getElementById("liveText").textContent="Simulação parada.";
 }
@@ -583,9 +592,11 @@ onValue(cloudStateRef, snapshot=>{
   firebaseFirstLoad=false;
 
   // Não sincroniza a sessão local da gerência.
+  const previousRunning=s.running;
   s={
     ...structuredClone(DEFAULT),
     ...cloud,
+    running:previousRunning,
     drawers:Array.isArray(cloud.drawers)?cloud.drawers:structuredClone(DEFAULT.drawers),
     history:Array.isArray(cloud.history)?cloud.history:[],
     shiftHistory:Array.isArray(cloud.shiftHistory)?cloud.shiftHistory:[],
@@ -598,9 +609,24 @@ onValue(cloudStateRef, snapshot=>{
   managerRender();
   mobileRender();
 
-  // O Firebase apenas informa o estado aqui. Não chamamos start()/stop(),
-  // porque essas funções salvam novamente e poderiam criar um ciclo de
-  // sobrescritas entre PC e celular.
+}, err=>{
+  console.error("Firebase: erro de leitura:",err);
+  document.querySelector(".online").innerHTML='<span class="dot" style="background:var(--red)"></span>Firebase desconectado';
+  toast("Não foi possível ler o Firebase. Confira as regras do Database.");
+});
+
+// Controle separado do estado: iniciar/parar não é mais sobrescrito pelos
+// ticks do outro aparelho, porque o tick só grava os dados das gavetas.
+onValue(cloudRunningRef, snapshot=>{
+  const value=snapshot.val();
+  if(value===null){
+    // Primeira criação do controle: usa o estado local existente apenas uma vez.
+    set(cloudRunningRef,!!s.running).catch(err=>console.error("Firebase: erro ao criar controle:",err));
+    return;
+  }
+  s.running=!!value;
+  localStorage.setItem(KEY,JSON.stringify(s));
+  render();
   if(s.running && !timer){
     timer=setInterval(tick,1200);
   }else if(!s.running && timer){
@@ -609,12 +635,10 @@ onValue(cloudStateRef, snapshot=>{
     document.getElementById("liveText").textContent="Simulação parada.";
   }
 }, err=>{
-  console.error("Firebase: erro de leitura:",err);
-  document.querySelector(".online").innerHTML='<span class="dot" style="background:var(--red)"></span>Firebase desconectado';
-  toast("Não foi possível ler o Firebase. Confira as regras do Database.");
+  console.error("Firebase: erro no controle da simulação:",err);
 });
 
-render();managerRender();if(s.running)start();
+render();managerRender();
 </script>
 </body>
 </html>
