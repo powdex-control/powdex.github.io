@@ -164,7 +164,7 @@
   <div class="card section">
     <div class="section-title">
       <h2>Conexão com o computador</h2>
-      <span class="badge warn" id="mobileConnBadge">SIMULAÇÃO</span>
+      <span class="badge warn" id="mobileConnBadge">FIREBASE</span>
     </div>
     <div class="reportgrid">
       <div>
@@ -175,8 +175,8 @@
       <div>
         <p class="help">
           Esta página permite testar manualmente os dados que futuramente poderão vir de um ESP32.
-          Nesta primeira versão, os dados são enviados para o POWDEX CONTROL pelo armazenamento local
-          do navegador quando celular e computador estiverem usando a mesma origem/sincronização.
+          Nesta versão, os dados são enviados para o POWDEX CONTROL pelo Firebase Realtime Database.
+          Assim, celular e computador podem sincronizar os mesmos dados pela internet em tempo real.
         </p>
         <div class="report-row"><span>Último envio</span><strong id="mobileLastSend">—</strong></div>
       </div>
@@ -242,7 +242,38 @@
 </div>
 <div id="toast" class="toast"></div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+
+/*
+ * FIREBASE
+ * Projeto: powdex-control
+ * Banco: https://powdex-control-default-rtdb.firebaseio.com/
+ *
+ * Para a conexão funcionar, cole abaixo os dados exibidos em:
+ * Firebase > Configurações do projeto > Seus apps > SDK da Web.
+ *
+ * O databaseURL já está preenchido com o endereço do seu Realtime Database.
+ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCcH6dftz_jLHYY2hUiHAtOGdQLEMl7ajs",
+  authDomain: "powdex-control.firebaseapp.com",
+  databaseURL: "https://powdex-control-default-rtdb.firebaseio.com",
+  projectId: "powdex-control",
+  storageBucket: "powdex-control.firebasestorage.app",
+  messagingSenderId: "728647369167",
+  appId: "1:728647369167:web:3c433c2352d6fc4aef12ba"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+const cloudStateRef = ref(db, "powdex/state");
+
+let firebaseReady = false;
+let firebaseFirstLoad = true;
+let firebaseWriting = false;
+
 const KEY="powdex-control-v2";
 const DEFAULT={cab:"CAB-001",price:22,max:50,seq:1,running:false,managerLogged:false,currentShift:null,shiftHistory:[],drawers:[
 {id:1,weight:0,target:null,lots:0,total:0,lastLot:"—"},
@@ -251,7 +282,23 @@ const DEFAULT={cab:"CAB-001",price:22,max:50,seq:1,running:false,managerLogged:f
 let s=JSON.parse(localStorage.getItem(KEY)||"null")||structuredClone(DEFAULT);
 s.currentShift=s.currentShift||null;s.shiftHistory=s.shiftHistory||[];s.managerLogged=false;
 let timer=null;
-function save(){localStorage.setItem(KEY,JSON.stringify(s))}
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(s));
+  if(firebaseReady && !firebaseWriting){
+    const cloudData=JSON.parse(JSON.stringify({
+      cab:s.cab,price:s.price,max:s.max,seq:s.seq,running:s.running,
+      currentShift:s.currentShift,shiftHistory:s.shiftHistory,
+      drawers:s.drawers,history:s.history
+    }));
+    firebaseWriting=true;
+    set(cloudStateRef,cloudData)
+      .catch(err=>{
+        console.error("Firebase: erro ao salvar:",err);
+        toast("Erro ao sincronizar com o Firebase.");
+      })
+      .finally(()=>{firebaseWriting=false;});
+  }
+}
 function fmt(n){return Number(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}
 function money(n){return Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
 function pad(n){return String(n).padStart(4,"0")}
@@ -475,6 +522,50 @@ document.getElementById("mobileSendAll").onclick=mobileSendAll;
 document.getElementById("mobileClear").onclick=mobileClear;
 document.getElementById("mobileFull").onclick=mobileFull;
 document.getElementById("mobileCloseLot").onclick=mobileCloseLot;
+
+/*
+ * SINCRONIZAÇÃO EM TEMPO REAL
+ * Celular e computador que abrirem este mesmo site passam a compartilhar
+ * gavetas, histórico, lotes, configurações e turno pelo Firebase.
+ */
+onValue(cloudStateRef, snapshot=>{
+  const cloud=snapshot.val();
+
+  if(!cloud){
+    firebaseReady=true;
+    if(firebaseFirstLoad){
+      firebaseFirstLoad=false;
+      save(); // cria powdex/state usando o estado inicial do aplicativo
+    }
+    return;
+  }
+
+  firebaseReady=true;
+  firebaseFirstLoad=false;
+
+  // Não sincroniza a sessão local da gerência.
+  s={
+    ...structuredClone(DEFAULT),
+    ...cloud,
+    drawers:Array.isArray(cloud.drawers)?cloud.drawers:structuredClone(DEFAULT.drawers),
+    history:Array.isArray(cloud.history)?cloud.history:[],
+    shiftHistory:Array.isArray(cloud.shiftHistory)?cloud.shiftHistory:[],
+    managerLogged:s.managerLogged,
+    currentShift:cloud.currentShift||null
+  };
+
+  localStorage.setItem(KEY,JSON.stringify(s));
+  render();
+  managerRender();
+  mobileRender();
+
+  if(s.running && !timer) start();
+  if(!s.running && timer) stop();
+}, err=>{
+  console.error("Firebase: erro de leitura:",err);
+  document.querySelector(".online").innerHTML='<span class="dot" style="background:var(--red)"></span>Firebase desconectado';
+  toast("Não foi possível ler o Firebase. Confira as regras do Database.");
+});
 
 render();managerRender();if(s.running)start();
 </script>
