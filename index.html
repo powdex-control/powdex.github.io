@@ -270,7 +270,7 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 const cloudStateRef = ref(db, "powdex/state");
-const cloudRunningRef = ref(db, "powdex/control/running");
+const cloudRunningRef = ref(db, "powdex/control");
 
 let firebaseReady = false;
 let firebaseFirstLoad = true;
@@ -285,6 +285,9 @@ const DEFAULT={cab:"CAB-001",price:22,max:50,seq:1,running:false,managerLogged:f
 let s=JSON.parse(localStorage.getItem(KEY)||"null")||structuredClone(DEFAULT);
 s.currentShift=s.currentShift||null;s.shiftHistory=s.shiftHistory||[];s.managerLogged=false;
 let timer=null;
+const CLIENT_ID_KEY="powdex-client-id-v1";
+let clientId=localStorage.getItem(CLIENT_ID_KEY);
+if(!clientId){ clientId=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()); localStorage.setItem(CLIENT_ID_KEY,clientId); }
 function getCloudData(){
   return JSON.parse(JSON.stringify({
     cab:s.cab,price:s.price,max:s.max,seq:s.seq,
@@ -528,7 +531,7 @@ function start(){
   if(timer)return;
   s.running=true;
   save();
-  set(cloudRunningRef,true).catch(err=>{
+  set(cloudRunningRef,{running:true,owner:clientId,updatedAt:Date.now()}).catch(err=>{
     console.error("Firebase: erro ao iniciar:",err);
     toast("Não foi possível iniciar a simulação no Firebase.");
   });
@@ -541,7 +544,7 @@ function stop(options={saveState:true,renderState:true}){
   timer=null;
   s.running=false;
   if(options.saveState)save();
-  set(cloudRunningRef,false).catch(err=>{
+  set(cloudRunningRef,{running:false,owner:null,updatedAt:Date.now()}).catch(err=>{
     console.error("Firebase: erro ao parar:",err);
     toast("Não foi possível parar a simulação no Firebase.");
   });
@@ -549,7 +552,7 @@ function stop(options={saveState:true,renderState:true}){
   document.getElementById("liveText").textContent="Simulação parada.";
 }
 document.getElementById("runBtn").onclick=()=>s.running?stop():start();
-document.getElementById("resetBtn").onclick=()=>{if(confirm("Zerar gavetas, lotes e relatório?")){s=structuredClone(DEFAULT);save();
+document.getElementById("resetBtn").onclick=()=>{if(confirm("Zerar gavetas, lotes e relatório?")){s=structuredClone(DEFAULT);save();set(cloudRunningRef,{running:false,owner:null,updatedAt:Date.now()}).catch(()=>{});
 document.querySelectorAll("[data-send-drawer]").forEach(b=>b.onclick=()=>mobileSendDrawer(Number(b.dataset.sendDrawer)));
 document.querySelectorAll("[data-zero-drawer]").forEach(b=>b.onclick=()=>mobileZeroDrawer(Number(b.dataset.zeroDrawer)));
 document.getElementById("mobileSendAll").onclick=mobileSendAll;
@@ -624,21 +627,31 @@ onValue(cloudStateRef, snapshot=>{
 // Controle separado do estado: iniciar/parar não é mais sobrescrito pelos
 // ticks do outro aparelho, porque o tick só grava os dados das gavetas.
 onValue(cloudRunningRef, snapshot=>{
-  const value=snapshot.val();
-  if(value===null){
-    // Primeira criação do controle: usa o estado local existente apenas uma vez.
-    set(cloudRunningRef,!!s.running).catch(err=>console.error("Firebase: erro ao criar controle:",err));
+  const control=snapshot.val();
+  if(!control){
+    if(timer){ clearInterval(timer); timer=null; }
+    s.running=false;
+    localStorage.setItem(KEY,JSON.stringify(s));
+    render();
+    document.getElementById("liveText").textContent="Simulação parada.";
     return;
   }
-  s.running=!!value;
+
+  const running=control.running===true;
+  const owner=control.owner||null;
+  s.running=running;
   localStorage.setItem(KEY,JSON.stringify(s));
   render();
-  if(s.running && !timer){
-    timer=setInterval(tick,1200);
-  }else if(!s.running && timer){
-    clearInterval(timer);
-    timer=null;
-    document.getElementById("liveText").textContent="Simulação parada.";
+
+  // IMPORTANTE: somente o aparelho que iniciou a simulação executa o timer.
+  // Os demais aparelhos apenas recebem e exibem os pesos pelo Firebase.
+  if(running && owner===clientId){
+    if(!timer) timer=setInterval(tick,1200);
+  }else{
+    if(timer){ clearInterval(timer); timer=null; }
+    document.getElementById("liveText").textContent=running
+      ? "Coleta automática ativa em outro dispositivo."
+      : "Simulação parada.";
   }
 }, err=>{
   console.error("Firebase: erro no controle da simulação:",err);
