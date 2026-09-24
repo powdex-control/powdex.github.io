@@ -510,6 +510,8 @@ img,svg{max-width:100%}
 </div>
 <div id="toast" class="toast"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 const KEY="powdex-control-v5";
 const CABIN_PASSWORDS={"CAB-001":"POWDEX001","CAB-002":"POWDEX002","CAB-003":"POWDEX003"};
@@ -524,7 +526,42 @@ for(const id of Object.keys(DEFAULT.cabins)){
 }
 s.activeCab=null;
 let activeCabin=null, selectedLoginCab="CAB-001";
-function save(){localStorage.setItem(KEY,JSON.stringify(s))}
+function save(){localStorage.setItem(KEY,JSON.stringify(s));fbPush()}
+
+/* ===== Firebase Realtime Database (sincronização) =====
+   Estrutura no banco: powdex/cabins/CAB-001, CAB-002, CAB-003
+   O localStorage continua como cópia local (o app funciona mesmo sem internet). */
+const FB_URL="https://powdex-control-default-rtdb.firebaseio.com";
+let fbDb=null,fbReady=false;
+try{if(typeof firebase!=="undefined"){firebase.initializeApp({databaseURL:FB_URL});fbDb=firebase.database()}}catch(e){console.error("Firebase:",e)}
+const fbArr=v=>Array.isArray(v)?v:(v&&typeof v==="object"?Object.keys(v).sort((a,b)=>a-b).map(k=>v[k]):[]);
+const fbCanon=o=>JSON.stringify(o,(k,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.keys(x).sort().reduce((a,y)=>(a[y]=x[y],a),{}):x);
+function fbClean(id){const c=JSON.parse(JSON.stringify(s.cabins[id]));delete c.managerLogged;return c}
+function fbNorm(id,r){const d=fbArr(r.drawers);return{cab:id,price:Number.isFinite(Number(r.price))?Number(r.price):22,seq:Number(r.seq)||1,currentShift:r.currentShift||null,shiftHistory:fbArr(r.shiftHistory),drawers:d.length===3?d:s.cabins[id].drawers,history:fbArr(r.history)}}
+function fbMark(id,on){try{const k=KEY+"-unsynced";let a=JSON.parse(localStorage.getItem(k)||"[]").filter(x=>x!==id);if(on)a.push(id);localStorage.setItem(k,JSON.stringify(a))}catch(e){}}
+function fbUnsynced(id){try{return JSON.parse(localStorage.getItem(KEY+"-unsynced")||"[]").includes(id)}catch(e){return false}}
+function fbSet(id){
+ if(!fbDb)return;const c=fbClean(id),sig=fbCanon(c);
+ fbDb.ref("powdex/cabins/"+id).set(c).then(()=>{if(fbCanon(fbClean(id))===sig)fbMark(id,false)}).catch(e=>console.error("Firebase:",e));
+}
+function fbPush(){if(!fbDb||!activeCabin)return;fbMark(activeCabin,true);if(fbReady)fbSet(activeCabin)}
+function fbStart(){
+ if(!fbDb)return;
+ fbDb.ref("powdex/cabins").on("value",snap=>{
+  const r=snap.val()||{},first=!fbReady;let changed=false;
+  for(const id of Object.keys(DEFAULT.cabins)){
+   if(!r[id]){if(first)fbSet(id);continue}
+   if(first&&fbUnsynced(id)){fbSet(id);continue}
+   const n=fbNorm(id,r[id]);
+   if(fbCanon(n)!==fbCanon(fbClean(id))){n.managerLogged=s.cabins[id].managerLogged;s.cabins[id]=n;changed=true}
+  }
+  fbReady=true;
+  if(changed){
+   localStorage.setItem(KEY,JSON.stringify(s));
+   if(activeCabin){const a=document.activeElement,v=a&&a.value;render();if(document.getElementById("management").classList.contains("active"))managerRender();if(a&&a.value!==v)a.value=v}
+  }
+ },e=>{console.error("Firebase:",e);toast("Sem acesso ao Firebase — verifique as regras do banco.")});
+}
 function cabin(){return activeCabin?s.cabins[activeCabin]:null}
 function fmt(n){return Number(n||0).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}
 function money(n){return Number(n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
@@ -613,6 +650,7 @@ document.getElementById("clearHistory").onclick=()=>{const c=cabin();if(confirm(
 document.getElementById("csvBtn").onclick=csv;document.getElementById("reportCsv").onclick=csv;document.getElementById("managerLoginBtn").onclick=loginManager;document.getElementById("managerPass").onkeydown=e=>{if(e.key==="Enter")loginManager()};document.getElementById("logoutManager").onclick=logoutManager;document.getElementById("startShift").onclick=openShift;document.getElementById("managerCsv").onclick=()=>{csv();toast("Relatório exportado.")};
 
 document.getElementById("app").classList.remove("unlocked");document.getElementById("cabinLogin").classList.remove("hidden");
+fbStart();
 </script>
 </body>
 </html>
