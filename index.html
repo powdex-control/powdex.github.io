@@ -342,7 +342,20 @@ img,svg{max-width:100%}
   #switchCabinBtn{padding:6px 8px;font-size:10.5px}
   .main{padding-left:12px;padding-right:12px}
 }
+
+/* ===== Adições: painel gerencial ampliado, status de operação, alertas =====
+   (somente novas classes — nada acima foi alterado) */
+.badge.green{border-color:rgba(62,207,142,.4);color:var(--green)}
+.btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+.alertlist{display:flex;flex-direction:column;gap:8px}
+.alertitem{padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;color:var(--text-dim)}
+.alertitem.warn{border-color:rgba(217,167,72,.35);color:var(--yellow)}
+.alertitem.red{border-color:rgba(224,20,44,.4);color:var(--red)}
+.mgmtperiod{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:12px}
 </style>
+
+<!-- ===================== POWDEX AI (estilos do widget) ===================== -->
+<link rel="stylesheet" href="ai/ai-chat.css">
 </head>
 <body>
 <div id="cabinLogin" class="cabin-login">
@@ -389,6 +402,18 @@ img,svg{max-width:100%}
 <div class="card kpi"><div class="label">Lotes registrados</div><div class="value" id="kLots">0</div><div class="small">lotes individuais</div></div>
 <div class="card kpi"><div class="label">Economia estimada</div><div class="value" id="kMoney">R$ 0,00</div><div class="small">peso × preço/kg</div></div>
 <div class="card kpi"><div class="label">Preço do pó</div><div class="value" id="kPrice">R$ 22,00/kg</div><div class="small">Configurações</div></div>
+</div>
+<div class="card section" id="opControlCard">
+<div class="section-title"><h2>Status da operação</h2><span class="badge" id="opStatusBadge">LIVRE</span></div>
+<div class="report-row"><span>Operador do turno</span><strong id="opOperatorInfo">Não informado</strong></div>
+<div class="report-row"><span>Turno</span><strong id="opShiftInfo">—</strong></div>
+<div class="report-row"><span>Status desde</span><strong id="opSinceInfo">—</strong></div>
+<div class="actions" style="margin-top:14px">
+<button class="btn primary" id="startOpBtn">Iniciar operação</button>
+<button class="btn" id="pauseOpBtn">Pausar</button>
+<button class="btn" id="resumeOpBtn">Retomar</button>
+<button class="btn red" id="endOpBtn">Encerrar operação</button>
+</div>
 </div>
 <div class="card section recovery-box">
 <div class="section-title"><h2>Registrar recuperação</h2><div class="cabinfo">Nº DA CABINE <b id="cabInfo">CAB-001</b></div></div>
@@ -447,6 +472,44 @@ img,svg{max-width:100%}
     <div class="card kpi"><div class="label">Economia acumulada</div><div class="value" id="mEconomy">R$ 0,00</div><div class="small">histórico completo</div></div>
   </div>
 
+  <div class="section"><div class="section-title"><h2>Produção</h2><select id="mgmtPeriod" class="mgmtperiod"><option value="hoje">Hoje</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="tudo">Todo o histórico</option></select></div>
+  <div class="grid">
+    <div class="card kpi"><div class="label">Kg recuperados hoje</div><div class="value" id="pKgHoje">0,0 kg</div><div class="small">todas as cabines</div></div>
+    <div class="card kpi"><div class="label">Kg no período</div><div class="value" id="pKgPeriodo">0,0 kg</div><div class="small" id="pPeriodoLabel">Hoje</div></div>
+    <div class="card kpi"><div class="label">Lotes no período</div><div class="value" id="pLotesPeriodo">0</div><div class="small">quantidade</div></div>
+    <div class="card kpi"><div class="label">Média kg/lote</div><div class="value" id="pMediaPeriodo">0,0 kg</div><div class="small">no período</div></div>
+  </div></div>
+
+  <div class="section"><div class="section-title"><h2>Economia</h2></div>
+  <div class="grid">
+    <div class="card kpi"><div class="label">Economia hoje</div><div class="value" id="eHoje">R$ 0,00</div><div class="small">todas as cabines</div></div>
+    <div class="card kpi"><div class="label">Economia no período</div><div class="value" id="ePeriodo">R$ 0,00</div><div class="small" id="ePeriodoLabel">Hoje</div></div>
+    <div class="card kpi"><div class="label">Economia acumulada</div><div class="value" id="eAcumulada">R$ 0,00</div><div class="small">histórico completo</div></div>
+    <div class="card kpi"><div class="label">Meta diária</div><div class="value" id="mgMeta">Não configurada</div><div class="small" id="mgMetaPct">—</div></div>
+  </div></div>
+
+  <div class="section"><div class="section-title"><h2>Cabines</h2><span class="badge">TEMPO REAL</span></div>
+  <div class="grid">
+    <div class="card kpi"><div class="label">Cabines cadastradas</div><div class="value" id="cQtd">3</div><div class="small">total</div></div>
+    <div class="card kpi"><div class="label">Em operação</div><div class="value" id="cOperando">0</div><div class="small">ativas agora</div></div>
+    <div class="card kpi"><div class="label">Pausadas</div><div class="value" id="cPausadas">0</div><div class="small">operação parada</div></div>
+    <div class="card kpi"><div class="label">Livres</div><div class="value" id="cLivres">0</div><div class="small" id="cManut">0 em manutenção</div></div>
+  </div>
+  <div class="drawers" id="cabineCards" style="margin-top:14px"></div>
+  </div>
+
+  <div class="section"><div class="section-title"><h2>Operação</h2></div>
+  <div class="grid">
+    <div class="card kpi"><div class="label">Operações em andamento</div><div class="value" id="oAndamento">0</div><div class="small">operando + pausadas</div></div>
+    <div class="card kpi"><div class="label">Operações finalizadas</div><div class="value" id="oFinalizadas">0</div><div class="small">histórico completo</div></div>
+    <div class="card kpi"><div class="label">Lotes finalizados</div><div class="value" id="oLotes">0</div><div class="small">total registrado</div></div>
+    <div class="card kpi"><div class="label">Lotes hoje</div><div class="value" id="oLotesHoje">0</div><div class="small">registrados hoje</div></div>
+  </div></div>
+
+  <div class="card section"><div class="section-title"><h2>Alertas operacionais</h2><span class="badge warn" id="alertCount">0</span></div>
+  <div class="alertlist" id="alertList"></div>
+  </div>
+
   <div class="section reportgrid">
     <div class="card">
       <div class="section-title"><h2>Turno atual</h2><span class="badge" id="currentShiftBadge">—</span></div>
@@ -500,7 +563,9 @@ img,svg{max-width:100%}
 <div class="card">
   <div class="fieldgroup"><div class="fieldgroup-title">Cabine</div><div class="formgrid"><div class="field"><label>Número da cabine</label><input id="setCab" value="CAB-001" disabled></div></div></div>
   <div class="fieldgroup"><div class="fieldgroup-title">Valores</div><div class="formgrid"><div class="field"><label>Preço do pó por kg (R$)</label><input id="setPrice" type="number" min="0" step=".01" value="22"></div></div></div>
+  <div class="fieldgroup"><div class="fieldgroup-title">Meta</div><div class="formgrid"><div class="field"><label>Meta diária de produção (kg) — cabine ativa</label><input id="setDailyGoal" type="number" min="0" step="1" value="0"></div></div></div>
   <p class="help" style="margin-top:6px">O preço/kg pode ser alterado para a cabine ativa. Ao salvar, os indicadores, histórico e relatório passam a usar imediatamente o novo preço.</p>
+  <p class="help" style="margin-top:6px">A meta diária é somada entre as cabines e usada no painel da Gerência Geral para calcular o percentual atingido no dia.</p>
 </div>
 <div class="card section"><div class="section-title"><h2>Exemplo de cálculo</h2></div><div class="report-row"><span>Se uma gaveta tiver 37,5 kg</span><strong id="example">37,5 × R$ 22,00 = R$ 825,00</strong></div></div>
 </section>
@@ -515,7 +580,7 @@ img,svg{max-width:100%}
 <script>
 const KEY="powdex-control-v5";
 const CABIN_PASSWORDS={"CAB-001":"POWDEX001","CAB-002":"POWDEX002","CAB-003":"POWDEX003"};
-function newCabin(id){return {cab:id,price:22,seq:1,managerLogged:false,currentShift:null,shiftHistory:[],drawers:[
+function newCabin(id){return {cab:id,price:22,seq:1,managerLogged:false,currentShift:null,shiftHistory:[],status:"livre",statusSince:Date.now(),opStartedAt:null,opLog:[],dailyGoalKg:0,drawers:[
 {id:1,lots:0,total:0,lastLot:"—"},{id:2,lots:0,total:0,lastLot:"—"},{id:3,lots:0,total:0,lastLot:"—"}],history:[]}}
 const DEFAULT={activeCab:null,cabins:{"CAB-001":newCabin("CAB-001"),"CAB-002":newCabin("CAB-002"),"CAB-003":newCabin("CAB-003")}};
 let s=JSON.parse(localStorage.getItem(KEY)||"null");
@@ -523,10 +588,11 @@ if(!s||!s.cabins||!s.cabins["CAB-001"]||!s.cabins["CAB-002"]||!s.cabins["CAB-003
 for(const id of Object.keys(DEFAULT.cabins)){
  if(!s.cabins[id])s.cabins[id]=structuredClone(DEFAULT.cabins[id]);
  const c=s.cabins[id]; c.cab=id;c.price=Number.isFinite(Number(c.price))?Number(c.price):22;c.seq=Number(c.seq)||1;c.history=Array.isArray(c.history)?c.history:[];c.shiftHistory=Array.isArray(c.shiftHistory)?c.shiftHistory:[];c.drawers=Array.isArray(c.drawers)&&c.drawers.length===3?c.drawers:structuredClone(DEFAULT.cabins[id].drawers);c.currentShift=c.currentShift||null;c.managerLogged=false;
+ c.status=["livre","operando","pausada","manutencao"].includes(c.status)?c.status:"livre";c.statusSince=Number(c.statusSince)||Date.now();c.opStartedAt=c.opStartedAt||null;c.opLog=Array.isArray(c.opLog)?c.opLog:[];c.dailyGoalKg=Number(c.dailyGoalKg)||0;
 }
 s.activeCab=null;
 let activeCabin=null, selectedLoginCab="CAB-001";
-function save(){localStorage.setItem(KEY,JSON.stringify(s));fbPush()}
+function save(id){localStorage.setItem(KEY,JSON.stringify(s));fbPush(id)}
 
 /* ===== Firebase Realtime Database (sincronização) =====
    Estrutura no banco: powdex/cabins/CAB-001, CAB-002, CAB-003
@@ -537,14 +603,14 @@ try{if(typeof firebase!=="undefined"){firebase.initializeApp({databaseURL:FB_URL
 const fbArr=v=>Array.isArray(v)?v:(v&&typeof v==="object"?Object.keys(v).sort((a,b)=>a-b).map(k=>v[k]):[]);
 const fbCanon=o=>JSON.stringify(o,(k,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.keys(x).sort().reduce((a,y)=>(a[y]=x[y],a),{}):x);
 function fbClean(id){const c=JSON.parse(JSON.stringify(s.cabins[id]));delete c.managerLogged;return c}
-function fbNorm(id,r){const d=fbArr(r.drawers);return{cab:id,price:Number.isFinite(Number(r.price))?Number(r.price):22,seq:Number(r.seq)||1,currentShift:r.currentShift||null,shiftHistory:fbArr(r.shiftHistory),drawers:d.length===3?d:s.cabins[id].drawers,history:fbArr(r.history)}}
+function fbNorm(id,r){const d=fbArr(r.drawers);return{cab:id,price:Number.isFinite(Number(r.price))?Number(r.price):22,seq:Number(r.seq)||1,currentShift:r.currentShift||null,shiftHistory:fbArr(r.shiftHistory),status:["livre","operando","pausada","manutencao"].includes(r.status)?r.status:"livre",statusSince:Number(r.statusSince)||Date.now(),opStartedAt:r.opStartedAt||null,opLog:fbArr(r.opLog),dailyGoalKg:Number(r.dailyGoalKg)||0,drawers:d.length===3?d:s.cabins[id].drawers,history:fbArr(r.history)}}
 function fbMark(id,on){try{const k=KEY+"-unsynced";let a=JSON.parse(localStorage.getItem(k)||"[]").filter(x=>x!==id);if(on)a.push(id);localStorage.setItem(k,JSON.stringify(a))}catch(e){}}
 function fbUnsynced(id){try{return JSON.parse(localStorage.getItem(KEY+"-unsynced")||"[]").includes(id)}catch(e){return false}}
 function fbSet(id){
  if(!fbDb)return;const c=fbClean(id),sig=fbCanon(c);
  fbDb.ref("powdex/cabins/"+id).set(c).then(()=>{if(fbCanon(fbClean(id))===sig)fbMark(id,false)}).catch(e=>console.error("Firebase:",e));
 }
-function fbPush(){if(!fbDb||!activeCabin)return;fbMark(activeCabin,true);if(fbReady)fbSet(activeCabin)}
+function fbPush(id){id=id||activeCabin;if(!fbDb||!id)return;fbMark(id,true);if(fbReady)fbSet(id)}
 function fbStart(){
  if(!fbDb)return;
  fbDb.ref("powdex/cabins").on("value",snap=>{
@@ -567,12 +633,18 @@ function fmt(n){return Number(n||0).toLocaleString("pt-BR",{minimumFractionDigit
 function money(n){return Number(n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
 function pad(n){return String(n).padStart(4,"0")}
 function refreshFade(el){if(!el)return;el.classList.remove("table-refresh");void el.offsetWidth;el.classList.add("table-refresh")}
+function statusLabel(st){return{livre:"LIVRE",operando:"EM OPERAÇÃO",pausada:"PAUSADA",manutencao:"MANUTENÇÃO"}[st]||"LIVRE"}
+function statusClass(st){return st==="operando"?"green":st==="pausada"?"warn":st==="manutencao"?"red":""}
+function allLots(){const out=[];for(const cc of Object.values(s.cabins))for(const x of cc.history)out.push({...x,price:cc.price});return out}
+function todayStartMs(){const now=new Date();return new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime()}
+function periodStartMs(period){const now=new Date();if(period==="hoje")return todayStartMs();if(period==="7")return now.getTime()-7*86400000;if(period==="30")return now.getTime()-30*86400000;return 0}
+function brDateTimeMs(d,t){const p=String(d||"01/01/1970").split("/").map(Number),h=String(t||"00:00:00").split(":").map(Number);return new Date(p[2]||1970,(p[1]||1)-1,p[0]||1,h[0]||0,h[1]||0,h[2]||0).getTime()}
 function render(){
  const c=cabin();if(!c)return;
  const total=c.history.reduce((a,x)=>a+Number(x.kg||0),0), lots=c.history.length, value=total*c.price;
  document.getElementById("cabineTitle").textContent=c.cab;document.getElementById("cabInfo").textContent=c.cab;
  document.getElementById("kTotal").textContent=fmt(total)+" kg";document.getElementById("kLots").textContent=lots;document.getElementById("kMoney").textContent=money(value);document.getElementById("kPrice").textContent=money(c.price)+"/kg";
- document.getElementById("setCab").value=c.cab;document.getElementById("setPrice").value=c.price;
+ document.getElementById("setCab").value=c.cab;document.getElementById("setPrice").value=c.price;document.getElementById("setDailyGoal").value=c.dailyGoalKg||0;
  const oh=document.getElementById("overviewHistory");oh.innerHTML=c.history.slice(0,8).map(x=>`<tr><td>${x.time}</td><td class="lot">${x.lot}</td><td>Gaveta ${String(x.drawer).padStart(2,"0")}</td><td><b>${fmt(x.kg)} kg</b></td><td>${money(x.kg*c.price)}</td></tr>`).join("")||`<tr><td colspan="5" class="empty">Nenhum lote registrado.</td></tr>`;refreshFade(oh);
  const ht=document.getElementById("historyTable");ht.innerHTML=c.history.map(x=>`<tr><td>${x.time}</td><td class="lot">${x.lot}</td><td>${x.cab}</td><td>Gaveta ${String(x.drawer).padStart(2,"0")}</td><td><b>${fmt(x.kg)} kg</b></td><td>${money(c.price)}</td><td><b>${money(x.kg*c.price)}</b></td></tr>`).join("")||`<tr><td colspan="7" class="empty">Nenhum lote registrado.</td></tr>`;refreshFade(ht);
  document.getElementById("hKg").textContent=fmt(total)+" kg";document.getElementById("hLots").textContent=lots;document.getElementById("hAvg").textContent=fmt(lots?total/lots:0)+" kg";document.getElementById("hValue").textContent=money(value);
@@ -581,19 +653,74 @@ function render(){
  document.getElementById("generalReport").innerHTML=`<div class="report-row"><span>Total de lotes registrados</span><strong>${lots}</strong></div><div class="report-row"><span>Peso total recuperado</span><strong>${fmt(total)} kg</strong></div><div class="report-row"><span>Preço atual por kg</span><strong>${money(c.price)}</strong></div><div class="report-row"><span><b>Economia total estimada</b></span><strong>${money(value)}</strong></div>`;
  document.getElementById("example").textContent=`37,5 × ${money(c.price)} = ${money(37.5*c.price)}`;
  document.getElementById("liveText").textContent=`Sistema pronto para registrar a próxima recuperação na ${c.cab}.`;
+ document.getElementById("opStatusBadge").textContent=statusLabel(c.status);document.getElementById("opStatusBadge").className="badge"+(statusClass(c.status)?" "+statusClass(c.status):"");
+ document.getElementById("opOperatorInfo").textContent=c.currentShift?.operator||"Não informado";document.getElementById("opShiftInfo").textContent=c.currentShift?.shift||"—";document.getElementById("opSinceInfo").textContent=c.statusSince?new Date(c.statusSince).toLocaleString("pt-BR"):"—";
+ document.getElementById("startOpBtn").disabled=(c.status==="operando"||c.status==="pausada"||c.status==="manutencao");
+ document.getElementById("pauseOpBtn").disabled=(c.status!=="operando");
+ document.getElementById("resumeOpBtn").disabled=(c.status!=="pausada");
+ document.getElementById("endOpBtn").disabled=(c.status!=="operando"&&c.status!=="pausada");
 }
 function managerRender(){
  const c=cabin();if(!c)return;const logged=!!c.managerLogged;
  document.getElementById("managerLogin").style.display=logged?"none":"block";document.getElementById("managerPanel").style.display=logged?"block":"none";if(!logged)return;
  const total=c.history.reduce((a,x)=>a+x.kg,0),value=total*c.price,ops=[...new Set(c.history.map(x=>x.operator).filter(Boolean))];
- document.getElementById("mCabines").textContent=3;document.getElementById("mOperators").textContent=ops.length;document.getElementById("mEconomy").textContent=money(value);
+ const allH=allLots(),allValue=allH.reduce((a,x)=>a+x.kg*x.price,0),allOps=[...new Set(allH.map(x=>x.operator).filter(Boolean))];
+ document.getElementById("mCabines").textContent=Object.keys(s.cabins).length;document.getElementById("mOperators").textContent=allOps.length;document.getElementById("mEconomy").textContent=money(allValue);
  const sh=c.currentShift;document.getElementById("currentOperator").textContent=sh?.operator||"Não informado";document.getElementById("currentShiftBadge").textContent=sh?.shift||"SEM TURNO";document.getElementById("currentShiftTime").textContent=sh?.timeRange||"—";document.getElementById("currentCabin").textContent=c.cab;document.getElementById("operatorInput").value=sh?.operator||"";document.getElementById("shiftInput").value=sh?.shift||"1º Turno";
  document.getElementById("cabWeight").textContent=fmt(total)+" kg";document.getElementById("cabLots").textContent=c.history.length;document.getElementById("cabMoney").textContent=money(value);document.getElementById("cabLastLot").textContent=c.history[0]?.lot||"—";
- const st=document.getElementById("shiftTable");st.innerHTML=c.shiftHistory.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.shift}</td><td><b>${x.operator}</b></td><td>${x.cab}</td><td>${x.start}</td><td>${x.end||"Em andamento"}</td><td>${fmt(x.kg)} kg</td></tr>`).join("")||`<tr><td colspan="7" class="empty">Nenhum turno registrado.</td></tr>`;refreshFade(st);
- const tt=document.getElementById("traceTable");tt.innerHTML=c.history.map(x=>`<tr><td class="lot">${x.lot}</td><td>${x.time}</td><td>${x.cab}</td><td>Gaveta ${String(x.drawer).padStart(2,"0")}</td><td>${x.operator||"Não informado"}</td><td>${x.shift||"—"}</td><td>${fmt(x.kg)} kg</td><td>${money(x.kg*c.price)}</td></tr>`).join("")||`<tr><td colspan="8" class="empty">Nenhum lote registrado.</td></tr>`;refreshFade(tt);
- const map={};c.history.forEach(x=>{const op=x.operator||"Não informado";if(!map[op])map[op]={lots:0,kg:0};map[op].lots++;map[op].kg+=x.kg});
- const ot=document.getElementById("operatorTable");ot.innerHTML=Object.entries(map).sort((a,b)=>b[1].kg-a[1].kg).map(([op,v])=>`<tr><td><b>${op}</b></td><td>${v.lots}</td><td>${fmt(v.kg)} kg</td><td><b>${money(v.kg*c.price)}</b></td></tr>`).join("")||`<tr><td colspan="4" class="empty">Ainda não há produtividade registrada.</td></tr>`;refreshFade(ot);
+ const allShifts=Object.values(s.cabins).flatMap(cc=>cc.shiftHistory).sort((a,b)=>brDateTimeMs(b.date,b.start)-brDateTimeMs(a.date,a.start));
+ const st=document.getElementById("shiftTable");st.innerHTML=allShifts.map(x=>`<tr><td>${x.date}</td><td>${x.shift}</td><td><b>${x.operator}</b></td><td>${x.cab}</td><td>${x.start}</td><td>${x.end||"Em andamento"}</td><td>${fmt(x.kg)} kg</td></tr>`).join("")||`<tr><td colspan="7" class="empty">Nenhum turno registrado.</td></tr>`;refreshFade(st);
+ const allSorted=allH.slice().sort((a,b)=>b.timestamp-a.timestamp);
+ const tt=document.getElementById("traceTable");tt.innerHTML=allSorted.map(x=>`<tr><td class="lot">${x.lot}</td><td>${x.time}</td><td>${x.cab}</td><td>Gaveta ${String(x.drawer).padStart(2,"0")}</td><td>${x.operator||"Não informado"}</td><td>${x.shift||"—"}</td><td>${fmt(x.kg)} kg</td><td>${money(x.kg*x.price)}</td></tr>`).join("")||`<tr><td colspan="8" class="empty">Nenhum lote registrado.</td></tr>`;refreshFade(tt);
+ const map={};allH.forEach(x=>{const op=x.operator||"Não informado";if(!map[op])map[op]={lots:0,kg:0,econ:0};map[op].lots++;map[op].kg+=x.kg;map[op].econ+=x.kg*x.price});
+ const ot=document.getElementById("operatorTable");ot.innerHTML=Object.entries(map).sort((a,b)=>b[1].kg-a[1].kg).map(([op,v])=>`<tr><td><b>${op}</b></td><td>${v.lots}</td><td>${fmt(v.kg)} kg</td><td><b>${money(v.econ)}</b></td></tr>`).join("")||`<tr><td colspan="4" class="empty">Ainda não há produtividade registrada.</td></tr>`;refreshFade(ot);
  document.getElementById("timeline").innerHTML=c.history.slice(0,20).map(x=>`<div style="padding:9px 0;border-bottom:1px solid var(--border-soft)"><b>${x.time}</b> — Lote <span class="lot">${x.lot}</span> fechado na Gaveta ${String(x.drawer).padStart(2,"0")}, ${fmt(x.kg)} kg, operador: <b>${x.operator||"Não informado"}</b>, ${x.shift||"sem turno"}.</div>`).join("")||"Nenhum evento registrado.";
+ mgmtDashboardRender(allH,allValue);
+}
+function mgmtDashboardRender(allH,allValue){
+ const period=document.getElementById("mgmtPeriod").value;
+ const periodLabels={hoje:"Hoje","7":"Últimos 7 dias","30":"Últimos 30 dias",tudo:"Todo o histórico"};
+ const todayStart=todayStartMs(),pStart=periodStartMs(period);
+ const today=allH.filter(x=>x.timestamp>=todayStart),inPeriod=allH.filter(x=>x.timestamp>=pStart);
+ const kgHoje=today.reduce((a,x)=>a+x.kg,0),kgPeriodo=inPeriod.reduce((a,x)=>a+x.kg,0),lotesPeriodo=inPeriod.length,mediaPeriodo=lotesPeriodo?kgPeriodo/lotesPeriodo:0;
+ const econHoje=today.reduce((a,x)=>a+x.kg*x.price,0),econPeriodo=inPeriod.reduce((a,x)=>a+x.kg*x.price,0);
+ document.getElementById("pKgHoje").textContent=fmt(kgHoje)+" kg";
+ document.getElementById("pKgPeriodo").textContent=fmt(kgPeriodo)+" kg";document.getElementById("pPeriodoLabel").textContent=periodLabels[period];
+ document.getElementById("pLotesPeriodo").textContent=lotesPeriodo;
+ document.getElementById("pMediaPeriodo").textContent=fmt(mediaPeriodo)+" kg";
+ document.getElementById("eHoje").textContent=money(econHoje);
+ document.getElementById("ePeriodo").textContent=money(econPeriodo);document.getElementById("ePeriodoLabel").textContent=periodLabels[period];
+ document.getElementById("eAcumulada").textContent=money(allValue);
+ const goalTotal=Object.values(s.cabins).reduce((a,cc)=>a+(Number(cc.dailyGoalKg)||0),0);
+ if(goalTotal>0){document.getElementById("mgMeta").textContent=fmt(goalTotal)+" kg";document.getElementById("mgMetaPct").textContent=Math.min(999,kgHoje/goalTotal*100).toFixed(0)+"% atingido hoje"}
+ else{document.getElementById("mgMeta").textContent="Não configurada";document.getElementById("mgMetaPct").textContent="Defina em Configurações"}
+ const cabList=Object.values(s.cabins);
+ const cOperando=cabList.filter(cc=>cc.status==="operando").length,cPausadas=cabList.filter(cc=>cc.status==="pausada").length,cManut=cabList.filter(cc=>cc.status==="manutencao").length,cLivres=cabList.filter(cc=>cc.status==="livre").length;
+ document.getElementById("cQtd").textContent=cabList.length;document.getElementById("cOperando").textContent=cOperando;document.getElementById("cPausadas").textContent=cPausadas;document.getElementById("cLivres").textContent=cLivres;document.getElementById("cManut").textContent=cManut+" em manutenção";
+ const oFinalizadas=cabList.reduce((a,cc)=>a+cc.opLog.length,0);
+ document.getElementById("oAndamento").textContent=cOperando+cPausadas;document.getElementById("oFinalizadas").textContent=oFinalizadas;document.getElementById("oLotes").textContent=allH.length;document.getElementById("oLotesHoje").textContent=today.length;
+ document.getElementById("cabineCards").innerHTML=cabList.map(cc=>{
+  const kgTot=cc.history.reduce((a,x)=>a+x.kg,0),kgHj=cc.history.filter(x=>x.timestamp>=todayStart).reduce((a,x)=>a+x.kg,0),canToggle=!(cc.status==="operando"||cc.status==="pausada");
+  return `<div class="card"><div class="section-title"><h2>${cc.cab}</h2><span class="badge${statusClass(cc.status)?" "+statusClass(cc.status):""}">${statusLabel(cc.status)}</span></div>
+   <div class="report-row"><span>Operador</span><strong>${cc.currentShift?.operator||"Não informado"}</strong></div>
+   <div class="report-row"><span>Turno</span><strong>${cc.currentShift?.shift||"—"}</strong></div>
+   <div class="report-row"><span>Status desde</span><strong>${cc.statusSince?new Date(cc.statusSince).toLocaleString("pt-BR"):"—"}</strong></div>
+   <div class="report-row"><span>Kg hoje</span><strong>${fmt(kgHj)} kg</strong></div>
+   <div class="report-row"><span>Kg total</span><strong>${fmt(kgTot)} kg</strong></div>
+   <div class="report-row"><span>Economia total</span><strong>${money(kgTot*cc.price)}</strong></div>
+   <div class="report-row"><span>Último lote</span><strong class="lot">${cc.history[0]?.lot||"—"}</strong></div>
+   <button class="btn" style="margin-top:10px;width:100%" onclick="toggleMaintenance('${cc.cab}')" ${canToggle?"":"disabled"}>${cc.status==="manutencao"?"Retirar da manutenção":"Colocar em manutenção"}</button>
+  </div>`;
+ }).join("");
+ const alerts=[];
+ cabList.forEach(cc=>{
+  const mins=(Date.now()-cc.statusSince)/60000;
+  if(cc.status==="pausada"&&mins>30)alerts.push({t:`${cc.cab} pausada há ${Math.floor(mins)} min.`,cls:"warn"});
+  if(cc.status==="operando"&&mins>240)alerts.push({t:`${cc.cab} em operação contínua há mais de 4 horas.`,cls:"warn"});
+  if(cc.status==="manutencao")alerts.push({t:`${cc.cab} está em manutenção.`,cls:"red"});
+ });
+ document.getElementById("alertCount").textContent=alerts.length;
+ document.getElementById("alertList").innerHTML=alerts.length?alerts.map(a=>`<div class="alertitem ${a.cls}">${a.t}</div>`).join(""):`<div class="alertitem">Nenhuma situação pendente.</div>`;
 }
 function toast(t){const x=document.getElementById("toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),2500)}
 function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.page===id));render();if(id==="management")managerRender()}
@@ -611,6 +738,36 @@ function openShift(){
  if(c.currentShift){const old={...c.currentShift};old.end=start;old.kg=c.history.filter(x=>x.operator===old.operator&&x.shift===old.shift&&x.time.startsWith(old.date)).reduce((a,x)=>a+x.kg,0);c.shiftHistory.push(old)}
  c.currentShift={date,shift:sh,operator:op,cab:c.cab,start,timeRange:ranges[sh]};save();managerRender();toast(`${sh} aberto para ${op}.`)
 }
+
+function startOperation(){
+ const c=cabin();if(!c)return;
+ if(c.status==="manutencao"){toast("Cabine em manutenção. Retire a manutenção antes de iniciar.");return}
+ if(c.status==="operando"){toast("Operação já está em andamento.");return}
+ if(c.status!=="pausada")c.opStartedAt=Date.now();
+ c.status="operando";c.statusSince=Date.now();save();render();managerRender();toast(`Operação iniciada na ${c.cab}.`)
+}
+function pauseOperation(){
+ const c=cabin();if(!c)return;if(c.status!=="operando"){toast("Não há operação em andamento para pausar.");return}
+ c.status="pausada";c.statusSince=Date.now();save();render();managerRender();toast("Operação pausada.")
+}
+function resumeOperation(){
+ const c=cabin();if(!c)return;if(c.status!=="pausada"){toast("Não há operação pausada para retomar.");return}
+ c.status="operando";c.statusSince=Date.now();save();render();managerRender();toast("Operação retomada.")
+}
+function endOperation(){
+ const c=cabin();if(!c)return;if(c.status!=="operando"&&c.status!=="pausada"){toast("Não há operação em andamento para encerrar.");return}
+ const start=c.opStartedAt||Date.now(),end=Date.now(),kg=c.history.filter(x=>x.timestamp>=start).reduce((a,x)=>a+Number(x.kg||0),0);
+ c.opLog.push({start,end,operator:c.currentShift?.operator||"Não informado",shift:c.currentShift?.shift||"—",kg:+kg.toFixed(1)});
+ c.status="livre";c.statusSince=Date.now();c.opStartedAt=null;save();render();managerRender();toast(`Operação encerrada na ${c.cab}.`)
+}
+function toggleMaintenance(id){
+ const c=s.cabins[id];if(!c)return;
+ if(c.status==="manutencao"){c.status="livre";c.statusSince=Date.now();toast(`${id} saiu de manutenção.`)}
+ else if(c.status==="operando"||c.status==="pausada"){toast("Encerre a operação antes de colocar em manutenção.");return}
+ else{c.status="manutencao";c.statusSince=Date.now();toast(`${id} marcada em manutenção.`)}
+ save(id);if(activeCabin===id)render();managerRender();
+}
+window.toggleMaintenance=toggleMaintenance;
 
 function createLot(drawerId,kg){
  const c=cabin(),d=c.drawers.find(x=>x.id===Number(drawerId));kg=Number(String(kg).replace(",","."));
@@ -630,6 +787,19 @@ function csv(){
  const c=cabin(),rows=[["Data/hora","Lote","Cabine","Gaveta","Peso (kg)","Preço/kg (R$)","Economia (R$)","Operador","Turno"],...c.history.map(x=>[x.time,x.lot,x.cab,x.drawer,x.kg,c.price,(x.kg*c.price).toFixed(2),x.operator||"Não informado",x.shift||"—"])];
  const txt="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(";")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"text/csv;charset=utf-8"}));a.download=`powdex_${c.cab}_relatorio.csv`;a.click();URL.revokeObjectURL(a.href)
 }
+function csvManager(){
+ const rows=[["Data","Turno","Cabine","Lote","Gaveta","Operador","Peso (kg)","Preço/kg (R$)","Economia (R$)"]];
+ const all=allLots().slice().sort((a,b)=>{
+  const da=a.time.split(" ")[0],db=b.time.split(" ")[0],ta=brDateTimeMs(da,"00:00:00"),tb=brDateTimeMs(db,"00:00:00");
+  if(ta!==tb)return ta-tb;
+  if((a.shift||"")!==(b.shift||""))return (a.shift||"").localeCompare(b.shift||"");
+  if(a.cab!==b.cab)return a.cab.localeCompare(b.cab);
+  if(a.lot!==b.lot)return a.lot.localeCompare(b.lot);
+  return (a.operator||"").localeCompare(b.operator||"");
+ });
+ all.forEach(x=>rows.push([x.time.split(" ")[0],x.shift||"—",x.cab,x.lot,x.drawer,x.operator||"Não informado",x.kg,x.price,(x.kg*x.price).toFixed(2)]));
+ const txt="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(";")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"text/csv;charset=utf-8"}));a.download="powdex_relatorio_geral.csv";a.click();URL.revokeObjectURL(a.href)
+}
 
 function selectCabin(id){selectedLoginCab=id;document.querySelectorAll(".cabin-option").forEach(b=>b.classList.toggle("active",b.dataset.cabin===id));document.getElementById("cabinPassword").value="";document.getElementById("cabinLoginError").style.display="none";document.getElementById("cabinPassword").focus()}
 function unlockCabin(){
@@ -644,13 +814,21 @@ document.getElementById("cabinLoginBtn").onclick=unlockCabin;document.getElement
 document.getElementById("registerRecovery").onclick=()=>{const ok=createLot(document.getElementById("recoveryDrawer").value,document.getElementById("recoveryKg").value);if(ok){document.getElementById("recoveryKg").value="";document.getElementById("recoveryKg").focus()}};
 document.getElementById("recoveryKg").onkeydown=e=>{if(e.key==="Enter")document.getElementById("registerRecovery").click()};
 document.getElementById("resetBtn").onclick=resetCabin;
-document.getElementById("saveSettings").onclick=()=>{const c=cabin(),p=Math.max(0,Number(String(document.getElementById("setPrice").value).replace(",","."))||0);c.price=p;save();render();managerRender();toast("Preço por kg atualizado.")};
+document.getElementById("saveSettings").onclick=()=>{const c=cabin(),p=Math.max(0,Number(String(document.getElementById("setPrice").value).replace(",","."))||0),g=Math.max(0,Number(String(document.getElementById("setDailyGoal").value).replace(",","."))||0);c.price=p;c.dailyGoalKg=g;save();render();managerRender();toast("Configurações atualizadas.")};
 document.getElementById("setPrice").oninput=()=>{const p=Math.max(0,Number(String(document.getElementById("setPrice").value).replace(",","."))||0);document.getElementById("example").textContent=`37,5 × ${money(p)} = ${money(37.5*p)}`};
 document.getElementById("clearHistory").onclick=()=>{const c=cabin();if(confirm(`Apagar todo o histórico da ${c.cab}?`)){c.history=[];c.drawers.forEach(d=>{d.lots=0;d.total=0;d.lastLot="—"});save();render();managerRender();toast("Histórico apagado.")}};
-document.getElementById("csvBtn").onclick=csv;document.getElementById("reportCsv").onclick=csv;document.getElementById("managerLoginBtn").onclick=loginManager;document.getElementById("managerPass").onkeydown=e=>{if(e.key==="Enter")loginManager()};document.getElementById("logoutManager").onclick=logoutManager;document.getElementById("startShift").onclick=openShift;document.getElementById("managerCsv").onclick=()=>{csv();toast("Relatório exportado.")};
+document.getElementById("csvBtn").onclick=csv;document.getElementById("reportCsv").onclick=csv;document.getElementById("managerLoginBtn").onclick=loginManager;document.getElementById("managerPass").onkeydown=e=>{if(e.key==="Enter")loginManager()};document.getElementById("logoutManager").onclick=logoutManager;document.getElementById("startShift").onclick=openShift;document.getElementById("managerCsv").onclick=()=>{csvManager();toast("Relatório geral exportado.")};
+document.getElementById("startOpBtn").onclick=startOperation;document.getElementById("pauseOpBtn").onclick=pauseOperation;document.getElementById("resumeOpBtn").onclick=resumeOperation;document.getElementById("endOpBtn").onclick=endOperation;
+document.getElementById("mgmtPeriod").onchange=()=>managerRender();
 
 document.getElementById("app").classList.remove("unlocked");document.getElementById("cabinLogin").classList.remove("hidden");
 fbStart();
 </script>
+
+<!-- ===================== POWDEX AI (assistente de chat) =====================
+     Config primeiro (define a URL do backend), depois a lógica do widget.
+     Nenhum dos dois altera Firebase, cabines, senhas ou telas existentes. -->
+<script src="config/config.js"></script>
+<script src="ai/ai-chat.js"></script>
 </body>
 </html>
