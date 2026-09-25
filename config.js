@@ -4,5 +4,5 @@
    NÃO coloque a OPENAI_API_KEY aqui — ela fica em backend/config.js.
    ===================================================== */
 window.POWDEX_AI_CONFIG = {
-  API_ENDPOINT: "COLOQUE_AQUI_A_URL_DO_SEU_BACKEND/api/chat"
+  API_ENDPOINT: "https://powdex-ai-backend.vercel.app/api/chat"
 };
