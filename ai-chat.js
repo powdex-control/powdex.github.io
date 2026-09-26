@@ -33,6 +33,96 @@
   let history = []; // {role:"user"|"assistant", content:string}
   let sending = false;
 
+  /* ---------- Contexto com dados reais da cabine ativa ----------
+     Lê as variáveis "s" e "activeCabin" já existentes no POWDEX CONTROL
+     (definidas no <script> principal do index.html). Como os scripts
+     clássicos compartilham o mesmo escopo global, essas variáveis já
+     existem quando este arquivo roda. Nada é alterado nelas — só leitura. */
+  function buildPowdexContext(){
+    try {
+      if (typeof activeCabin === "undefined" || !activeCabin || typeof s === "undefined") {
+        return "Nenhuma cabine está logada no momento nesta tela.";
+      }
+      const c = s.cabins[activeCabin];
+      if (!c) return "Dados da cabine ativa não encontrados.";
+
+      const total = c.history.reduce((a, x) => a + Number(x.kg || 0), 0);
+      const lots = c.history.length;
+      const value = total * c.price;
+      const statusMap = { livre: "Livre", operando: "Em operação", pausada: "Pausada", manutencao: "Manutenção" };
+      const statusTxt = statusMap[c.status] || c.status || "desconhecido";
+
+      const drawersTxt = (c.drawers || []).map(d =>
+        `Gaveta ${d.id}: ${d.lots} lote(s), ${Number(d.total || 0).toFixed(1)} kg, último lote: ${d.lastLot || "—"}`
+      ).join(" | ") || "sem dados de gavetas";
+
+      const recentTxt = (c.history || []).slice(0, 15).map(x =>
+        `${x.time} — lote ${x.lot}, gaveta ${x.drawer}, ${Number(x.kg || 0).toFixed(1)} kg, operador: ${x.operator || "não informado"}`
+      ).join(" | ") || "nenhum lote registrado ainda";
+
+      const goalTxt = c.dailyGoalKg ? `${c.dailyGoalKg} kg` : "não definida";
+
+      const lines = [
+        `Cabine ativa: ${c.cab}`,
+        `Status atual: ${statusTxt}`,
+        `Operador do turno: ${c.currentShift && c.currentShift.operator ? c.currentShift.operator : "não informado"}`,
+        `Turno atual: ${c.currentShift && c.currentShift.shift ? c.currentShift.shift : "sem turno aberto"}`,
+        `Status desde: ${c.statusSince ? new Date(c.statusSince).toLocaleString("pt-BR") : "—"}`,
+        `Preço do pó configurado: R$ ${Number(c.price || 0).toFixed(2)} por kg`,
+        `Pó recuperado (total acumulado da cabine): ${total.toFixed(1)} kg`,
+        `Lotes registrados nesta cabine: ${lots}`,
+        `Economia estimada acumulada nesta cabine: R$ ${value.toFixed(2)}`,
+        `Meta diária de produção configurada: ${goalTxt}`,
+        `Situação das gavetas: ${drawersTxt}`,
+        `Últimos lotes registrados nesta cabine (mais recente primeiro): ${recentTxt}`
+      ];
+
+      // Se a pessoa estiver logada como gerente (painel "Gerenciamento Geral"),
+      // inclui também um resumo agregado de TODAS as cabines do sistema.
+      if (c.managerLogged && typeof s.cabins === "object") {
+        const cabs = Object.values(s.cabins);
+        let allKg = 0, allValue = 0, allLotsCount = 0;
+        const perOperator = {};
+        const perCabin = [];
+
+        cabs.forEach(cc => {
+          const cTotal = (cc.history || []).reduce((a, x) => a + Number(x.kg || 0), 0);
+          const cValue = cTotal * cc.price;
+          allKg += cTotal;
+          allValue += cValue;
+          allLotsCount += (cc.history || []).length;
+          perCabin.push(`${cc.cab}: ${cTotal.toFixed(1)} kg, ${(cc.history || []).length} lote(s), R$ ${cValue.toFixed(2)}, status ${statusMap[cc.status] || cc.status}`);
+          (cc.history || []).forEach(x => {
+            const op = x.operator || "não informado";
+            if (!perOperator[op]) perOperator[op] = { lots: 0, kg: 0 };
+            perOperator[op].lots++;
+            perOperator[op].kg += Number(x.kg || 0);
+          });
+        });
+
+        const rankingTxt = Object.entries(perOperator)
+          .sort((a, b) => b[1].kg - a[1].kg)
+          .map(([op, v]) => `${op}: ${v.lots} lote(s), ${v.kg.toFixed(1)} kg`)
+          .join(" | ") || "sem operadores registrados";
+
+        lines.push(
+          "--- Dados gerais (visão de gerente, todas as cabines) ---",
+          `Total de cabines no sistema: ${cabs.length}`,
+          `Pó recuperado (todas as cabines somadas): ${allKg.toFixed(1)} kg`,
+          `Lotes registrados (todas as cabines): ${allLotsCount}`,
+          `Economia estimada total (todas as cabines): R$ ${allValue.toFixed(2)}`,
+          `Resumo por cabine: ${perCabin.join(" | ")}`,
+          `Ranking por operador (kg recuperado): ${rankingTxt}`
+        );
+      }
+
+      return lines.join("\n");
+    } catch (err){
+      console.error("POWDEX AI: erro ao montar contexto de dados:", err);
+      return "";
+    }
+  }
+
   function el(tag, attrs, ...children){
     const e = document.createElement(tag);
     if (attrs) for (const k in attrs){
@@ -208,7 +298,7 @@
       const res = await fetch(API_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history })
+        body: JSON.stringify({ messages: history, context: buildPowdexContext() })
       });
 
       if (!res.ok) throw new Error("Falha na resposta do servidor (" + res.status + ")");
